@@ -1,0 +1,36 @@
+{
+  "response": [
+    {
+      "fixture": {
+        "id": 1208000,
+        "date": "2026-08-15T15:00:00+00:00",
+        "status": { "short": "FT", "long": "Match Finished", "elapsed": 90 },
+        "venue": { "id": 555, "name": "Example Stadium", "city": "London" }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "country": "England",
+        "season": 2025
+      },
+      "teams": {
+        "home": { "id": 33, "name": "Manchester United" },
+        "away": { "id": 40, "name": "Liverpool" }
+      },
+      "goals": { "home": 2, "away": 1 },
+      "score": {
+        "fulltime": { "home": 2, "away": 1 }
+      },
+      "events": [
+        {
+          "time": { "elapsed": 12, "extra": null },
+          "team": { "id": 33 },
+          "player": { "id": 9001 },
+          "assist": { "id": null },
+          "type": "Goal",
+          "detail": "Normal Goal"
+        }
+      ]
+    }
+  ]
+}

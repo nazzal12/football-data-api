@@ -1,2 +1,3 @@
-/** @football-api/provider — provider port (Phase 1 shell). */
-export const PROVIDER_PACKAGE = "@football-api/provider" as const;
+export type { ExternalRef, FootballProvider, IdBridge, QuotaSnapshot } from "./port.js";
+export { KvIdBridge, MemoryIdBridge } from "./ids.js";
+export { FakeFootballProvider } from "./fake.js";

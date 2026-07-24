@@ -28,3 +28,14 @@ export type { AppConfig, ConfigSource } from "./config.js";
 export { loadConfig } from "./config.js";
 
 export { sha256Hex, stableStringify } from "./hash.js";
+
+export {
+  idMapKey,
+  metaKey,
+  objectKey,
+  projectionKey,
+  quotaKey,
+  slugIndexKey,
+} from "./keys.js";
+
+export type { ControlState, ObjectMetadata } from "./metadata.js";

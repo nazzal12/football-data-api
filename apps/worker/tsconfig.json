@@ -1,19 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
     "rootDir": "src",
     "types": ["@cloudflare/workers-types"],
-    "noEmit": true,
-    "composite": false
+    "noEmit": true
   },
   "include": ["src/**/*.ts"],
-  "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/domain" },
-    { "path": "../../packages/storage" },
-    { "path": "../../packages/lifecycle" },
-    { "path": "../../packages/provider" },
-    { "path": "../../packages/provider-api-football" }
-  ]
+  "exclude": ["src/**/*.test.ts"]
 }

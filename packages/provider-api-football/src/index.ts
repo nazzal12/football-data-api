@@ -1,2 +1,5 @@
-/** @football-api/provider-api-football — API-Football adapter (Phase 1 shell). */
-export const API_FOOTBALL_PACKAGE = "@football-api/provider-api-football" as const;
+export { ApiFootballProvider } from "./adapter.js";
+export type { ApiFootballClientOptions } from "./adapter.js";
+export { mapFixtureToMatch, parseQuotaHeaders } from "./map-match.js";
+export type { IdResolver } from "./map-match.js";
+export { mapTeamToCanonical } from "./map-team.js";

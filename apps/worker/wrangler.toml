@@ -3,18 +3,24 @@ main = "src/index.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
 
+[observability]
+enabled = true
+
 [vars]
 ENVIRONMENT = "development"
 
+# Workers KV — metadata, lifecycle, id maps, leases
 [[kv_namespaces]]
 binding = "META"
-id = "00000000000000000000000000000000"
-preview_id = "00000000000000000000000000000000"
+id = "47d3dcca27284017a3d6a1be1d2cb119"
+preview_id = "47d3dcca27284017a3d6a1be1d2cb119"
 
+# R2 — canonical objects (bucket: football-api-objects)
+# S3 API (for non-Worker clients): https://172e60bf5969fa2ef5e34f840c3b1045.r2.cloudflarestorage.com/football-api-objects
 [[r2_buckets]]
 binding = "OBJECTS"
 bucket_name = "football-api-objects"
-preview_bucket_name = "football-api-objects-preview"
+preview_bucket_name = "football-api-objects"
 
 # Set locally in .dev.vars (gitignored) or as a Worker secret in production:
 # API_SPORTS_KEY

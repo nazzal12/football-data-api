@@ -18,13 +18,13 @@ Refresh is **request-driven** only. No cron. Provider adapters are replaceable.
 ## Workspace layout
 
 ```
-apps/worker                 Hono Worker, orchestrator, routes
-packages/core               Config, logger, errors, Result, clock, ids
-packages/domain             Canonical Zod schemas + public DTOs
-packages/storage            Cache / KV / R2 ports + implementations
-packages/lifecycle          Refresh policies and decide()
-packages/provider           FootballProvider port + ID bridge + quota
-packages/provider-api-football  API-Football adapter (isolated)
+apps/worker                      Hono Worker, orchestrator, routes, OpenAPI stub
+packages/core                    Config, logger, errors, Result, clock, ids
+packages/domain                  Canonical Zod schemas + public DTOs
+packages/storage                 Cache / KV / R2 ports, fakes, projections
+packages/lifecycle               Refresh policies and decide()
+packages/provider                FootballProvider port + ID bridge + fake
+packages/provider-api-football   API-Football adapter (isolated mappers)
 ```
 
 ## Prerequisites
@@ -36,18 +36,23 @@ packages/provider-api-football  API-Football adapter (isolated)
 
 ```bash
 pnpm install
-cp .env.example .env   # set API_SPORTS_KEY for local provider calls
+cp .env.example .env
 ```
 
-For Wrangler local secrets:
+Wrangler local secrets (`apps/worker/.dev.vars`):
 
-```bash
-# apps/worker/.dev.vars
+```
 API_SPORTS_KEY=your-key
 ```
 
-KV/R2 binding IDs in `apps/worker/wrangler.toml` are placeholders. Replace with real
-Cloudflare resource IDs before production deploy. Local `wrangler dev` uses Miniflare.
+Replace KV/R2 ids in `apps/worker/wrangler.toml` before production deploy.
+
+Bind an internal match id before first fetch:
+
+```
+idmap:api-football:match:<externalId> = <internalUuid>
+idmap:api-football:internal:<internalUuid> = <externalId>
+```
 
 ## Scripts
 
@@ -62,8 +67,14 @@ Cloudflare resource IDs before production deploy. Local `wrangler dev` uses Mini
 ## Public API
 
 - `GET /health` — liveness
+- `GET /v1/matches/:id` — match by internal UUID
+- `GET /v1/matches/by-external/:externalId` — bootstrap from upstream fixture id
+- `GET /v1/teams/:id` — team by internal UUID
+- `GET /v1/teams/by-external/:externalId` — bootstrap from upstream team id
+- `GET /v1/projections/matches/:key` — match list projection
+- `PUT /v1/id-maps` — bind `{ externalType, externalId, internalId }`
 
-Domain routes are added in later phases (`GET /v1/matches/:id`, …).
+OpenAPI: `apps/worker/openapi.json`. Progress: [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Security
 

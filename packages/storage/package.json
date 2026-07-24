@@ -10,12 +10,14 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@football-api/core": "workspace:*"
+    "@football-api/core": "workspace:*",
+    "@football-api/domain": "workspace:*"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250317.0",
     "typescript": "^5.8.2"
   }
 }

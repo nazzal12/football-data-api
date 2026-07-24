@@ -12,9 +12,9 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "composite": true
+    "composite": false,
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
   }
 }

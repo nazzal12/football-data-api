@@ -1,2 +1,12 @@
-/** @football-api/lifecycle — refresh decisions (Phase 1 shell). */
-export const LIFECYCLE_PACKAGE = "@football-api/lifecycle" as const;
+export {
+  applyFailedRefresh,
+  applySuccessfulRefresh,
+  decide,
+  matchPolicy,
+  policyFor,
+  resolveControlState,
+  staticPolicy,
+  tablePolicy,
+  withLease,
+} from "./engine.js";
+export type { DecideInput, PolicyPack, RefreshAction } from "./engine.js";
