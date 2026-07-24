@@ -122,4 +122,34 @@ describe("Orchestrator getMatch", () => {
     expect(second.ok).toBe(true);
     if (second.ok) expect(second.value.match.score).toEqual({ home: 1, away: 0 });
   });
+
+  it("builds match list projection on cold miss", async () => {
+    const provider = new FakeFootballProvider();
+    provider.setMatchesByDate("2024-08-16", ["1001", "1002"]);
+    const ids = new MemoryIdBridge();
+    const orch = new Orchestrator({
+      objects: new MemoryObjectStore(),
+      meta: new MemoryMetaStore(),
+      cache: new MemoryHttpCache(),
+      provider,
+      ids,
+      clock: new FrozenClock("2026-01-01T16:00:00.000Z"),
+      logger: new ConsoleLogger("error"),
+    });
+
+    const key = "date:2024-08-16";
+    const url = `https://api.test/v1/projections/matches/${key}`;
+    const first = await orch.getMatchListProjection(new Request(url), key);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.value.refreshed).toBe(true);
+    expect(first.value.projection.matchIds).toHaveLength(2);
+    expect(provider.callCount).toBe(1);
+
+    const second = await orch.getMatchListProjection(new Request(url), key);
+    expect(second.ok).toBe(true);
+    if (!second.ok) return;
+    expect(second.value.cacheHit).toBe(true);
+    expect(provider.callCount).toBe(1);
+  });
 });

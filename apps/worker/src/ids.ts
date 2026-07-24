@@ -42,8 +42,11 @@ export class PersistentIdResolver {
       seasonId: (competitionExternalId: number, seasonYear: number) =>
         this.ensure("season", `${competitionExternalId}:${seasonYear}`),
       competitionId: (externalId: number) => this.ensure("competition", externalId),
+      matchId: (externalId: number) => this.ensure("match", externalId),
+      coachId: (externalId: number) => this.ensure("coach", externalId),
       venueId: async (externalId: number) => this.ensure("venue", externalId),
       playerId: async (externalId: number) => this.ensure("player", externalId),
+      countryId: async (name: string) => this.ensure("country", name.toLowerCase()),
     };
   }
 }
