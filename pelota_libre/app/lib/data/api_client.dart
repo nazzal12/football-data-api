@@ -195,18 +195,23 @@ class FootballApi {
   FootballApi(this.client);
   final FootballApiClient client;
 
-  Future<MatchListProjection> matchesByDate(String ymd) async {
+  Future<MatchListProjection> matchesByDate(
+    String ymd, {
+    bool forceRefresh = false,
+  }) async {
     final j = await client.getJson(
       '/v1/projections/matches/by-date/$ymd',
-      fallbackMaxAge: 30,
+      forceRefresh: forceRefresh,
+      fallbackMaxAge: 60,
     );
     return MatchListProjection.fromJson(j);
   }
 
-  Future<MatchListProjection> matchesLive() async {
+  Future<MatchListProjection> matchesLive({bool forceRefresh = false}) async {
     final j = await client.getJson(
       '/v1/projections/matches/live',
-      fallbackMaxAge: 15,
+      forceRefresh: forceRefresh,
+      fallbackMaxAge: 5,
     );
     return MatchListProjection.fromJson(j);
   }
@@ -227,8 +232,12 @@ class FootballApi {
     return MatchListProjection.fromJson(j);
   }
 
-  Future<Match> match(String id) async {
-    final j = await client.getJson('/v1/matches/$id', fallbackMaxAge: 20);
+  Future<Match> match(String id, {bool forceRefresh = false}) async {
+    final j = await client.getJson(
+      '/v1/matches/$id',
+      forceRefresh: forceRefresh,
+      fallbackMaxAge: 5,
+    );
     return Match.fromJson(j);
   }
 
@@ -317,20 +326,28 @@ class FootballApi {
     return Venue.fromJson(j);
   }
 
-  Future<List<MatchEvent>> matchEvents(String matchId) async {
+  Future<List<MatchEvent>> matchEvents(
+    String matchId, {
+    bool forceRefresh = false,
+  }) async {
     final j = await client.getJson(
       '/v1/matches/$matchId/events',
-      fallbackMaxAge: 20,
+      forceRefresh: forceRefresh,
+      fallbackMaxAge: 5,
     );
     return (j['events'] as List<dynamic>)
         .map((e) => MatchEvent.fromJson(e as JsonMap))
         .toList();
   }
 
-  Future<MatchStatistics> matchStatistics(String matchId) async {
+  Future<MatchStatistics> matchStatistics(
+    String matchId, {
+    bool forceRefresh = false,
+  }) async {
     final j = await client.getJson(
       '/v1/matches/$matchId/statistics',
-      fallbackMaxAge: 30,
+      forceRefresh: forceRefresh,
+      fallbackMaxAge: 15,
     );
     return MatchStatistics.fromJson(j);
   }

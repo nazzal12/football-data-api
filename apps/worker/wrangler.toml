@@ -10,6 +10,11 @@ enabled = true
 [vars]
 ENVIRONMENT = "production"
 
+# Catalog warmup only (teams, tournaments, yesterday/today/tomorrow lists).
+# Live matches are NEVER cron-refreshed — user request + 5s lifecycle only.
+[triggers]
+crons = ["0 */5 * * *"]
+
 # Workers KV — metadata, lifecycle, id maps, leases
 [[kv_namespaces]]
 binding = "META"

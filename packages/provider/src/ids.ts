@@ -1,4 +1,4 @@
-import { idMapKey } from "@football-api/core";
+import { createId, idMapKey } from "@football-api/core";
 import type { ExternalRef, IdBridge } from "./port.js";
 
 /** Minimal meta port so provider does not depend on @football-api/storage. */
@@ -30,6 +30,11 @@ export class KvIdBridge implements IdBridge {
 export class MemoryIdBridge implements IdBridge {
   private readonly forward = new Map<string, string>();
   private readonly reverse = new Map<string, string>();
+  private readonly provider: string;
+
+  constructor(provider = "fake") {
+    this.provider = provider;
+  }
 
   private fk(ref: ExternalRef): string {
     return `${ref.provider}:${ref.externalType}:${ref.externalId}`;
@@ -46,5 +51,14 @@ export class MemoryIdBridge implements IdBridge {
 
   async toExternal(internalId: string): Promise<string | null> {
     return this.reverse.get(internalId) ?? null;
+  }
+
+  async ensure(externalType: string, externalId: string): Promise<string> {
+    const ref = { provider: this.provider, externalType, externalId };
+    const existing = await this.toInternal(ref);
+    if (existing) return existing;
+    const internalId = createId();
+    await this.bind(ref, internalId);
+    return internalId;
   }
 }

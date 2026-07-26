@@ -1,0 +1,16 @@
+---
+description: How to bind websites/apps to the Football API (read before client integration)
+alwaysApply: false
+---
+
+# Football API client binding
+
+When building or wiring any website, mobile app, SSR site, or SDK against this platform:
+
+1. **Read first:** [`docs/API.md`](docs/API.md) — recipes, ID model, errors, types.
+2. **Contract:** [`docs/openapi.yaml`](docs/openapi.yaml) — OpenAPI 3.1 for codegen.
+3. **Base URL:** `https://football-api.nazzalkausar12.workers.dev` (reads are public; no client API key).
+4. **Bootstrap** with `/v1/.../by-external/...`, then **persist returned UUIDs** for later `/v1/.../{uuid}` calls.
+5. **Lists** come from `/v1/projections/matches/...` as `matchIds` only — hydrate via `/v1/matches/{id}`.
+6. **Never** call API-Football from the client; never ship `API_SPORTS_KEY` or `ADMIN_TOKEN` to the browser/app.
+7. Treat HTTP `502`/`503` (especially provider rate limits) as retryable with backoff.

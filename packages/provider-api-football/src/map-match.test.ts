@@ -29,6 +29,8 @@ describe("mapFixtureToMatch", () => {
     expect(match.phase).toBe("finished");
     expect(match.score).toEqual({ home: 2, away: 1 });
     expect(match.events).toHaveLength(1);
+    expect(match.events[0]?.playerName).toBe("Example Player");
+    expect(match.events[0]?.teamName).toBe("Manchester United");
     expect(JSON.stringify(match)).not.toContain("fixture");
     expect(JSON.stringify(match)).not.toContain('"league"');
   });

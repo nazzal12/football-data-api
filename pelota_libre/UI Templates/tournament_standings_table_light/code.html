@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tournament Standings - Light Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e27",
+                        "on-primary-container": "#007128",
+                        "tertiary-fixed": "#e2e2e2",
+                        "primary-fixed": "#6bff83",
+                        "background": "#fcf9f8",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "outline-variant": "#b9ccb5",
+                        "on-primary-fixed-variant": "#00531b",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface": "#fcf9f8",
+                        "on-error-container": "#93000a",
+                        "outline": "#6b7c68",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "tertiary": "#5d5f5f",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "surface-bright": "#fcf9f8",
+                        "primary-container": "#00ff66",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-container-high": "#eae7e7",
+                        "inverse-primary": "#00e55b",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary-container": "#dddddd",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#3b4b3a",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary-container": "#606161",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#f0eded",
+                        "on-secondary-container": "#646464",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "surface-variant": "#e5e2e1",
+                        "primary": "#006e27",
+                        "inverse-surface": "#313030",
+                        "secondary-container": "#e2e2e2",
+                        "primary-fixed-dim": "#00e55b",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#002107",
+                        "secondary": "#5e5e5e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "16px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "lg": "48px",
+                        "xs": "8px",
+                        "xl": "80px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Archivo Narrow"],
+                        "headline-lg": ["Anton"],
+                        "headline-md": ["Anton"],
+                        "headline-lg-mobile": ["Anton"],
+                        "label-sm": ["Archivo Narrow"],
+                        "body-md": ["Archivo Narrow"],
+                        "display-lg": ["Anton"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "headline-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "0.02em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .table-row-hover:hover { background-color: #f6f3f2; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-20 md:pb-0">
+<!-- Top App Bar -->
+<header class="bg-surface w-full top-0 sticky border-b-2 border-on-background flex justify-between items-center px-margin-mobile md:px-margin-desktop py-2 z-40 flat no shadows">
+<button class="text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors p-2 rounded-none">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+</button>
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tighter italic">PELOTA LIBRE</h1>
+<button class="text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors p-2 rounded-none">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="max-w-7xl mx-auto md:flex md:flex-row md:px-margin-desktop md:gap-md md:pt-md">
+<!-- Side Nav (Desktop only) -->
+<nav class="hidden md:flex flex-col w-64 border-r-2 border-on-background pr-md h-[calc(100vh-64px)] sticky top-[64px]">
+<ul class="flex flex-col gap-sm mt-md">
+<li><a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors font-label-sm text-label-sm uppercase rounded-none" href="#"><span class="material-symbols-outlined">home</span> Home</a></li>
+<li><a class="flex items-center gap-sm px-4 py-3 bg-primary-container text-on-primary-container font-bold font-label-sm text-label-sm uppercase border-l-4 border-on-background rounded-none" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emoji_events</span> Leagues</a></li>
+<li><a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors font-label-sm text-label-sm uppercase rounded-none" href="#"><span class="material-symbols-outlined">sensors</span> Live</a></li>
+<li><a class="flex items-center gap-sm px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-colors font-label-sm text-label-sm uppercase rounded-none" href="#"><span class="material-symbols-outlined">groups</span> Teams</a></li>
+</ul>
+</nav>
+<!-- Content Area -->
+<div class="flex-1">
+<!-- Hero Image Header -->
+<div class="relative w-full h-48 md:h-64 border-b-2 border-on-background mb-md bg-surface-container-high overflow-hidden" data-alt="A brightly lit, high-contrast overhead shot of a modern stadium pitch during daytime. The vivid green grass contrasts sharply against crisp white stadium lines and structural shadows. The mood is intense, energetic, and highly professional, fitting a top-tier sports data platform in light mode." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAGoqjP4XFnKeJlWzpJwcysY-sRH6xjNot64Qz65IlHna6Uc5B3mxUf1cmxtqiNvRAIm3pO2pkZd_ozLZIRkT7KGAimWpAIk3iCI3I2YAKcFbFOz4OvKJJ535o9G0LMivDBRPN-AxcBhEWSC4Stt8kGor9gntYs7A30sbVZuOEO3Z925wlUHzQFXM9ryukC8QmUkDNuX8LwgZZlZlwL0k1T-wcZp4DSVScgJka0K_JnbtnsOQUS4Wn6ekpcPHykJIPks1SspVkIjDI')">
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+<div class="absolute bottom-md left-margin-mobile md:left-0 flex items-end gap-sm">
+<div class="w-16 h-16 bg-on-background text-on-primary flex items-center justify-center border-2 border-on-background shadow-[4px_4px_0px_#00ff66]">
+<span class="material-symbols-outlined text-headline-lg font-headline-lg">emoji_events</span>
+</div>
+<div>
+<h2 class="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg text-on-background uppercase tracking-tight">Copa Libertadores</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">2023 / 2024 Season</p>
+</div>
+</div>
+</div>
+<!-- Page Navigation Tabs -->
+<div class="px-margin-mobile md:px-0 mb-md overflow-x-auto whitespace-nowrap hide-scrollbar border-b-2 border-surface-container-high">
+<div class="flex gap-md pb-2">
+<button class="font-label-sm text-label-sm uppercase tracking-widest text-on-background border-b-4 border-primary pb-2 font-bold">Table</button>
+<button class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant pb-2 hover:text-on-background">Matches</button>
+<button class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant pb-2 hover:text-on-background">Stats</button>
+<button class="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant pb-2 hover:text-on-background">Teams</button>
+</div>
+</div>
+<!-- Group Selector Chips -->
+<div class="px-margin-mobile md:px-0 mb-md flex gap-sm overflow-x-auto hide-scrollbar pb-1">
+<button class="px-4 py-2 bg-primary-container text-on-background font-label-sm text-label-sm uppercase border-2 border-on-background rounded-none shadow-[2px_2px_0px_#1c1b1b]">Group A</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase border-2 border-transparent hover:border-on-background rounded-none transition-colors">Group B</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase border-2 border-transparent hover:border-on-background rounded-none transition-colors">Group C</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase border-2 border-transparent hover:border-on-background rounded-none transition-colors">Group D</button>
+</div>
+<!-- Standings Table Container -->
+<div class="px-margin-mobile md:px-0 mb-xl">
+<div class="bg-surface border-2 border-on-background rounded-none overflow-hidden shadow-[4px_4px_0px_#1c1b1b]">
+<!-- Table Header -->
+<div class="bg-on-background text-on-primary grid grid-cols-[1fr_auto_auto_auto_auto] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 p-sm font-label-sm text-label-sm uppercase">
+<div class="text-left">Club</div>
+<div class="text-center w-8">P</div>
+<div class="text-center w-8 hidden md:block">W</div>
+<div class="text-center w-8 hidden md:block">D</div>
+<div class="text-center w-8 hidden md:block">L</div>
+<div class="text-center w-8">GD</div>
+<div class="text-center w-8 font-bold text-primary-container">Pts</div>
+</div>
+<!-- Table Rows -->
+<div class="flex flex-col">
+<!-- Row 1 -->
+<div class="grid grid-cols-[1fr_auto_auto_auto_auto] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 p-sm border-b border-surface-variant items-center table-row-hover bg-background">
+<div class="flex items-center gap-xs">
+<span class="font-label-sm text-label-sm w-4 text-on-surface-variant">1</span>
+<div class="w-2 h-full bg-primary-container absolute left-0"></div> <!-- Qualification indicator -->
+<div class="w-6 h-6 bg-surface-container-high border border-on-background rounded-none flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-[16px]">sports_soccer</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-background font-bold tracking-tight">Fluminense</span>
+</div>
+<div class="text-center w-8 font-body-md text-body-md">6</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">4</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">2</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">0</div>
+<div class="text-center w-8 font-body-md text-body-md">+6</div>
+<div class="text-center w-8 font-body-lg text-body-lg font-bold text-on-background">14</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-[1fr_auto_auto_auto_auto] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 p-sm border-b border-surface-variant items-center table-row-hover bg-surface-container-lowest">
+<div class="flex items-center gap-xs">
+<span class="font-label-sm text-label-sm w-4 text-on-surface-variant">2</span>
+<div class="w-6 h-6 bg-surface-container-high border border-on-background rounded-none flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-[16px]">sports_soccer</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-background font-bold tracking-tight">Colo-Colo</span>
+</div>
+<div class="text-center w-8 font-body-md text-body-md">6</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">1</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">3</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">2</div>
+<div class="text-center w-8 font-body-md text-body-md">-1</div>
+<div class="text-center w-8 font-body-lg text-body-lg font-bold text-on-background">6</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-[1fr_auto_auto_auto_auto] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 p-sm border-b border-surface-variant items-center table-row-hover bg-background">
+<div class="flex items-center gap-xs">
+<span class="font-label-sm text-label-sm w-4 text-on-surface-variant">3</span>
+<div class="w-6 h-6 bg-surface-container-high border border-on-background rounded-none flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-[16px]">sports_soccer</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-background font-bold tracking-tight">Cerro Porteño</span>
+</div>
+<div class="text-center w-8 font-body-md text-body-md">6</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">1</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">3</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">2</div>
+<div class="text-center w-8 font-body-md text-body-md">-1</div>
+<div class="text-center w-8 font-body-lg text-body-lg font-bold text-on-background">6</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-[1fr_auto_auto_auto_auto] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-2 p-sm items-center table-row-hover bg-surface-container-lowest">
+<div class="flex items-center gap-xs">
+<span class="font-label-sm text-label-sm w-4 text-on-surface-variant">4</span>
+<div class="w-6 h-6 bg-surface-container-high border border-on-background rounded-none flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-[16px]">sports_soccer</span>
+</div>
+<span class="font-body-lg text-body-lg text-on-background font-bold tracking-tight">Alianza Lima</span>
+</div>
+<div class="text-center w-8 font-body-md text-body-md">6</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">0</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">4</div>
+<div class="text-center w-8 font-body-md text-body-md hidden md:block">2</div>
+<div class="text-center w-8 font-body-md text-body-md">-4</div>
+<div class="text-center w-8 font-body-lg text-body-lg font-bold text-on-background">4</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Mobile only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-stretch bg-surface border-t-2 border-on-background flat no shadows">
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container py-1 px-4 border-b-4 border-on-background hover:bg-surface-container-high translate-y-[-2px] transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emoji_events</span>
+<span class="font-label-sm text-label-sm uppercase font-bold">Leagues</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="font-label-sm text-label-sm uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-sm text-label-sm uppercase">Teams</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm uppercase">Profile</span>
+</a>
+</nav>
+<style>
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</body></html>

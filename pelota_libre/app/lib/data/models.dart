@@ -429,11 +429,18 @@ class MatchStatistics {
   factory MatchStatistics.fromJson(Map<String, dynamic> j) => MatchStatistics(
         id: j['id'] as String,
         matchId: j['matchId'] as String,
-        teams: (j['teams'] as List<dynamic>).map((e) {
+        teams: (j['teams'] as List<dynamic>? ?? const []).map((e) {
           final m = e as Map<String, dynamic>;
+          final raw = m['metrics'];
+          final metrics = <String, dynamic>{};
+          if (raw is Map) {
+            raw.forEach((key, value) {
+              metrics['$key'] = value;
+            });
+          }
           return (
             teamId: m['teamId'] as String,
-            metrics: Map<String, dynamic>.from(m['metrics'] as Map),
+            metrics: metrics,
           );
         }).toList(),
       );

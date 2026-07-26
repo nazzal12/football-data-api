@@ -15,5 +15,6 @@ export { CacheApiHttpCache } from "./cache.js";
 export {
   cacheMaxAgeForPhase,
   getMatchListProjection,
+  parseMatchListProjectionKey,
   putMatchListProjection,
 } from "./projections.js";

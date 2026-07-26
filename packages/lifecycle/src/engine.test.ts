@@ -1,6 +1,6 @@
 import { MS } from "@football-api/core";
 import { describe, expect, it } from "vitest";
-import { decide, matchPolicy, resolveControlState } from "./engine.js";
+import { dateListPolicy, decide, matchPolicy, resolveControlState } from "./engine.js";
 
 describe("lifecycle decide", () => {
   const now = Date.parse("2026-01-01T12:00:00.000Z");
@@ -90,9 +90,45 @@ describe("lifecycle decide", () => {
     expect(state).toBe("stale");
   });
 
-  it("shrinks future TTL near kickoff", () => {
+  it("expires future matches at kickoff time", () => {
     const far = matchPolicy("future", now, now + 2 * MS.DAY);
+    const atKickoff = matchPolicy("future", now, now);
     const near = matchPolicy("future", now, now + 30 * MS.MINUTE);
-    expect(near.softTtlMs).toBeLessThan(far.softTtlMs);
+    expect(far.softTtlMs).toBe(5 * MS.HOUR);
+    expect(atKickoff.softTtlMs).toBe(0);
+    expect(near.softTtlMs).toBe(30 * MS.MINUTE);
+  });
+
+  it("uses 5s live policy", () => {
+    const live = matchPolicy("live", now);
+    expect(live.softTtlMs).toBe(5 * MS.SECOND);
+    expect(live.cacheTtlSeconds).toBe(5);
+  });
+
+  it("uses 5m racing date-list policy", () => {
+    const racing = dateListPolicy(true);
+    expect(racing.softTtlMs).toBe(5 * MS.MINUTE);
+    expect(racing.cacheTtlSeconds).toBe(60);
+    const past = dateListPolicy(false);
+    expect(past.softTtlMs).toBe(365 * MS.DAY);
+  });
+
+  it("never refreshes finished matches", () => {
+    const action = decide({
+      meta: {
+        objectType: "match",
+        objectId: "m1",
+        phase: "finished",
+        freshnessClass: "static",
+        controlState: "stale",
+        softExpireAt: now - 1,
+        r2Key: "k",
+      },
+      nowMs: now,
+      policy: matchPolicy("finished", now),
+      hasServableObject: true,
+      quotaAvailable: true,
+    });
+    expect(action).toEqual({ type: "serve", from: "r2", fillCache: true });
   });
 });

@@ -28,6 +28,7 @@ export const competitionSchema = z
     format: competitionFormatSchema,
     isLeague: z.boolean(),
     countryId: entityIdSchema.optional(),
+    logoUrl: z.string().url().optional(),
   })
   .strict();
 export type Competition = z.infer<typeof competitionSchema>;
@@ -52,6 +53,7 @@ export const teamSchema = z
     shortName: z.string().optional(),
     countryId: entityIdSchema.optional(),
     venueId: entityIdSchema.optional(),
+    logoUrl: z.string().url().optional(),
   })
   .strict();
 export type Team = z.infer<typeof teamSchema>;
@@ -61,11 +63,84 @@ export const playerSchema = z
     schemaVersion: z.literal(SCHEMA_VERSION),
     id: entityIdSchema,
     name: z.string().min(1),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    age: z.number().int().nonnegative().optional(),
+    nationality: z.string().optional(),
     countryId: entityIdSchema.optional(),
     dateOfBirth: z.string().optional(),
+    height: z.string().optional(),
+    weight: z.string().optional(),
+    position: z.string().optional(),
+    photoUrl: z.string().url().optional(),
   })
   .strict();
 export type Player = z.infer<typeof playerSchema>;
+
+export const coachCareerEntrySchema = z
+  .object({
+    teamId: entityIdSchema,
+    start: z.string().optional(),
+    end: z.string().optional(),
+  })
+  .strict();
+
+export const coachSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    name: z.string().min(1),
+    firstName: z.string().optional(),
+    lastName: z.string().optional(),
+    nationality: z.string().optional(),
+    dateOfBirth: z.string().optional(),
+    photoUrl: z.string().url().optional(),
+    teamId: entityIdSchema.optional(),
+    career: z.array(coachCareerEntrySchema).default([]),
+  })
+  .strict();
+export type Coach = z.infer<typeof coachSchema>;
+
+export const transferEntrySchema = z
+  .object({
+    playerId: entityIdSchema,
+    date: z.string().optional(),
+    type: z.string().optional(),
+    fromTeamId: entityIdSchema.optional(),
+    toTeamId: entityIdSchema.optional(),
+  })
+  .strict();
+
+export const transferReportSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    teamId: entityIdSchema.optional(),
+    playerId: entityIdSchema.optional(),
+    transfers: z.array(transferEntrySchema),
+  })
+  .strict();
+export type TransferReport = z.infer<typeof transferReportSchema>;
+
+export const teamSeasonStatisticsSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    teamId: entityIdSchema,
+    seasonId: entityIdSchema,
+    form: z.string().optional(),
+    fixturesPlayed: z.number().int().nonnegative().optional(),
+    wins: z.number().int().nonnegative().optional(),
+    draws: z.number().int().nonnegative().optional(),
+    losses: z.number().int().nonnegative().optional(),
+    goalsFor: z.number().int().nonnegative().optional(),
+    goalsAgainst: z.number().int().nonnegative().optional(),
+    cleanSheets: z.number().int().nonnegative().optional(),
+    failedToScore: z.number().int().nonnegative().optional(),
+    metrics: z.record(z.string(), z.union([z.number(), z.string(), z.boolean(), z.null()])),
+  })
+  .strict();
+export type TeamSeasonStatistics = z.infer<typeof teamSeasonStatisticsSchema>;
 
 export const venueSchema = z
   .object({
@@ -96,8 +171,11 @@ export const matchEventSchema = z
       "other",
     ]),
     teamId: entityIdSchema.optional(),
+    teamName: z.string().optional(),
     playerId: entityIdSchema.optional(),
+    playerName: z.string().optional(),
     assistPlayerId: entityIdSchema.optional(),
+    assistPlayerName: z.string().optional(),
     detail: z.string().optional(),
   })
   .strict();
@@ -106,6 +184,8 @@ export type MatchEvent = z.infer<typeof matchEventSchema>;
 export const lineupPlayerSchema = z
   .object({
     playerId: entityIdSchema,
+    playerName: z.string().optional(),
+    photoUrl: z.string().url().optional(),
     shirtNumber: z.number().int().positive().optional(),
     position: z.string().optional(),
     isStarter: z.boolean(),
@@ -194,6 +274,8 @@ export type Statistics = z.infer<typeof statisticsSchema>;
 export const squadMemberSchema = z
   .object({
     playerId: entityIdSchema,
+    playerName: z.string().optional(),
+    photoUrl: z.string().url().optional(),
     shirtNumber: z.number().int().positive().optional(),
     position: z.string().optional(),
   })
@@ -210,6 +292,240 @@ export const squadSchema = z
   .strict();
 export type Squad = z.infer<typeof squadSchema>;
 
+/** Team-level statistics for a single match (both sides). */
+export const matchStatisticsSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    matchId: entityIdSchema,
+    teams: z.array(
+      z
+        .object({
+          teamId: entityIdSchema,
+          metrics: z.record(
+            z.string(),
+            z.union([z.number(), z.string(), z.boolean(), z.null()]),
+          ),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type MatchStatistics = z.infer<typeof matchStatisticsSchema>;
+
+/** Provider-agnostic pre-match prediction summary. */
+export const matchPredictionSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    matchId: entityIdSchema,
+    advice: z.string().optional(),
+    winnerTeamId: entityIdSchema.optional(),
+    winOrDraw: z.boolean().optional(),
+    underOver: z.string().optional(),
+    goalsHome: z.string().optional(),
+    goalsAway: z.string().optional(),
+    percentHome: z.number().nonnegative().optional(),
+    percentDraw: z.number().nonnegative().optional(),
+    percentAway: z.number().nonnegative().optional(),
+    formHome: z.string().optional(),
+    formAway: z.string().optional(),
+  })
+  .strict();
+export type MatchPrediction = z.infer<typeof matchPredictionSchema>;
+
+/** Pre-match bookmaker odds snapshot for a match. */
+export const oddsValueSchema = z
+  .object({
+    label: z.string().min(1),
+    odd: z.number().positive(),
+  })
+  .strict();
+
+export const oddsBetSchema = z
+  .object({
+    name: z.string().min(1),
+    values: z.array(oddsValueSchema),
+  })
+  .strict();
+
+export const oddsBookmakerSchema = z
+  .object({
+    name: z.string().min(1),
+    bets: z.array(oddsBetSchema),
+  })
+  .strict();
+
+export const matchOddsSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    matchId: entityIdSchema,
+    updatedAt: z.string().datetime().optional(),
+    bookmakers: z.array(oddsBookmakerSchema),
+  })
+  .strict();
+export type MatchOdds = z.infer<typeof matchOddsSchema>;
+
+/** Recent head-to-head meetings between two teams. */
+export const headToHeadSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    teamAId: entityIdSchema,
+    teamBId: entityIdSchema,
+    matchIds: z.array(entityIdSchema),
+  })
+  .strict();
+export type HeadToHead = z.infer<typeof headToHeadSchema>;
+
+export const injuryEntrySchema = z
+  .object({
+    playerId: entityIdSchema,
+    teamId: entityIdSchema,
+    type: z.string().optional(),
+    reason: z.string().optional(),
+    startDate: z.string().optional(),
+  })
+  .strict();
+
+/** Injuries for a match or team+season scope. */
+export const injuryReportSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    matchId: entityIdSchema.optional(),
+    teamId: entityIdSchema.optional(),
+    seasonId: entityIdSchema.optional(),
+    injuries: z.array(injuryEntrySchema),
+  })
+  .strict();
+export type InjuryReport = z.infer<typeof injuryReportSchema>;
+
+export const seasonLeaderKindSchema = z.enum([
+  "goals",
+  "assists",
+  "yellow_cards",
+  "red_cards",
+]);
+export type SeasonLeaderKind = z.infer<typeof seasonLeaderKindSchema>;
+
+export const seasonLeaderRowSchema = z
+  .object({
+    rank: z.number().int().positive(),
+    playerId: entityIdSchema,
+    playerName: z.string().optional(),
+    playerPhotoUrl: z.string().url().optional(),
+    teamId: entityIdSchema,
+    teamName: z.string().optional(),
+    value: z.number(),
+  })
+  .strict();
+
+export const seasonLeadersSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    seasonId: entityIdSchema,
+    kind: seasonLeaderKindSchema,
+    rows: z.array(seasonLeaderRowSchema),
+  })
+  .strict();
+export type SeasonLeaders = z.infer<typeof seasonLeadersSchema>;
+
+/** Per-player statistics within a match. */
+export const matchPlayerStatisticsSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    matchId: entityIdSchema,
+    players: z.array(
+      z
+        .object({
+          playerId: entityIdSchema,
+          teamId: entityIdSchema,
+          metrics: z.record(
+            z.string(),
+            z.union([z.number(), z.string(), z.boolean(), z.null()]),
+          ),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type MatchPlayerStatistics = z.infer<typeof matchPlayerStatisticsSchema>;
+
+export const trophyEntrySchema = z
+  .object({
+    place: z.string().optional(),
+    season: z.string().optional(),
+    competitionName: z.string().optional(),
+    country: z.string().optional(),
+  })
+  .strict();
+
+export const trophyReportSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    subjectType: z.enum(["player", "team", "coach"]),
+    subjectId: entityIdSchema,
+    trophies: z.array(trophyEntrySchema),
+  })
+  .strict();
+export type TrophyReport = z.infer<typeof trophyReportSchema>;
+
+export const sidelinedEntrySchema = z
+  .object({
+    type: z.string().optional(),
+    start: z.string().optional(),
+    end: z.string().optional(),
+  })
+  .strict();
+
+export const sidelinedReportSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    playerId: entityIdSchema.optional(),
+    coachId: entityIdSchema.optional(),
+    entries: z.array(sidelinedEntrySchema),
+  })
+  .strict();
+export type SidelinedReport = z.infer<typeof sidelinedReportSchema>;
+
+export const seasonRoundsSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    seasonId: entityIdSchema,
+    rounds: z.array(z.string().min(1)),
+  })
+  .strict();
+export type SeasonRounds = z.infer<typeof seasonRoundsSchema>;
+
+/** Lightweight card fields embedded in list projections (avoids client N+1). */
+export const matchListItemSchema = z
+  .object({
+    matchId: entityIdSchema,
+    competitionId: entityIdSchema,
+    homeTeamId: entityIdSchema,
+    awayTeamId: entityIdSchema,
+    kickoffAt: z.string().datetime(),
+    phase: matchPhaseSchema,
+    status: z.string().min(1),
+    score: matchScoreSchema.optional(),
+    minute: z.number().int().nonnegative().optional(),
+    homeName: z.string().min(1),
+    awayName: z.string().min(1),
+    homeLogoUrl: z.string().url().optional(),
+    awayLogoUrl: z.string().url().optional(),
+    competitionName: z.string().min(1).optional(),
+    competitionLogoUrl: z.string().url().optional(),
+  })
+  .strict();
+export type MatchListItem = z.infer<typeof matchListItemSchema>;
+
 export const matchListProjectionSchema = z
   .object({
     schemaVersion: z.literal(SCHEMA_VERSION),
@@ -217,6 +533,8 @@ export const matchListProjectionSchema = z
     kind: z.literal("match_list"),
     key: z.string().min(1),
     matchIds: z.array(entityIdSchema),
+    /** Optional hydrated cards from the same upstream list response. */
+    items: z.array(matchListItemSchema).optional(),
   })
   .strict();
 export type MatchListProjection = z.infer<typeof matchListProjectionSchema>;

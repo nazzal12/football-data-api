@@ -8,11 +8,16 @@ export class FakeFootballProvider implements FootballProvider {
   callCount = 0;
   private quota: QuotaSnapshot | undefined;
   private readonly matches = new Map<string, Match>();
+  private readonly matchesByDate = new Map<string, string[]>();
   private delayMs = 0;
   private error: AppError | null = null;
 
   setMatch(externalId: string, match: Match): void {
     this.matches.set(externalId, match);
+  }
+
+  setMatchesByDate(date: string, externalIds: string[]): void {
+    this.matchesByDate.set(date, externalIds);
   }
 
   setDelay(ms: number): void {
@@ -42,5 +47,11 @@ export class FakeFootballProvider implements FootballProvider {
       return { ok: false, error: notFoundError("Match not found in fake provider") };
     }
     return ok(match);
+  }
+
+  async listMatchExternalIdsByDate(date: string): Promise<Result<string[], AppError>> {
+    this.callCount += 1;
+    if (this.error) return { ok: false, error: this.error };
+    return ok(this.matchesByDate.get(date) ?? []);
   }
 }

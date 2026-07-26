@@ -7,6 +7,7 @@ export type UpstreamTeamItem = {
     name: string;
     code?: string | null;
     country?: string | null;
+    logo?: string | null;
   };
   venue?: {
     id?: number | null;
@@ -24,6 +25,8 @@ export async function mapTeamToCanonical(
 ): Promise<Team> {
   const countryName = item.team.country ?? undefined;
   const venueExt = item.venue?.id ?? undefined;
+  const logo =
+    item.team.logo && /^https?:\/\//.test(item.team.logo) ? item.team.logo : undefined;
   const raw = {
     schemaVersion: 1 as const,
     id: internalId,
@@ -31,6 +34,7 @@ export async function mapTeamToCanonical(
     shortName: item.team.code ?? undefined,
     countryId: countryName ? await resolve.countryId?.(countryName) : undefined,
     venueId: venueExt != null ? await resolve.venueId?.(venueExt) : undefined,
+    logoUrl: logo,
   };
   return parseCanonical(teamSchema, raw);
 }

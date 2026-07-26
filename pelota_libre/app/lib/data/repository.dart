@@ -144,10 +144,18 @@ class FootballRepository {
     return c;
   }
 
-  Future<Match> match(String id) async {
+  Future<Match> match(String id, {bool forceRefresh = false}) async {
     final cached = _matches[id];
-    if (cached != null && !cached.isLive) return cached;
-    final m = await _api.match(id);
+    // Finished snapshots are stable; lists poison memory with stale cards.
+    if (!forceRefresh && cached != null && cached.isFinished) return cached;
+    final m = await _api.match(
+      id,
+      forceRefresh: forceRefresh ||
+          cached?.isLive == true ||
+          (cached != null &&
+              cached.isUpcoming &&
+              !cached.kickoffAt.isAfter(DateTime.now().toUtc())),
+    );
     _matches[id] = m;
     return m;
   }
@@ -389,19 +397,20 @@ class FootballRepository {
   Future<List<LeagueGroupVm>> homeFeed({
     required DateTime day,
     required bool liveOnly,
+    bool forceRefresh = false,
   }) async {
     final sw = Stopwatch()..start();
     // Featured warm is optional when projection items already carry league names.
     final featuredFuture = ensureFeaturedCompetitions();
     final MatchListProjection proj;
     if (liveOnly) {
-      _log('homeFeed LIVE');
-      proj = await _api.matchesLive();
+      _log('homeFeed LIVE force=$forceRefresh');
+      proj = await _api.matchesLive(forceRefresh: forceRefresh);
     } else {
       final ymd =
           '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-      _log('homeFeed date=$ymd');
-      proj = await _api.matchesByDate(ymd);
+      _log('homeFeed date=$ymd force=$forceRefresh');
+      proj = await _api.matchesByDate(ymd, forceRefresh: forceRefresh);
     }
     _log(
       'projection ids=${proj.matchIds.length} items=${proj.items.length} after ${sw.elapsedMilliseconds}ms',
@@ -412,7 +421,8 @@ class FootballRepository {
       cards = cardsFromProjectionItems(
         proj.items,
         limit: liveOnly ? AppConfig.liveMatchLimit : AppConfig.homeMatchLimit,
-        liveOnly: liveOnly,
+        // null = all phases (today ALL must include live cards).
+        liveOnly: liveOnly ? true : null,
       );
       // Soft-warm featured leagues in background; do not block UI.
       unawaited(featuredFuture);
@@ -423,16 +433,16 @@ class FootballRepository {
         limit: liveOnly ? AppConfig.liveMatchLimit : AppConfig.homeMatchLimit,
         featuredOnly: true,
       );
-      cards = liveOnly
-          ? cards.where((c) => c.match.isLive).toList()
-          : cards.where((c) => !c.match.isLive).toList();
+      if (liveOnly) {
+        cards = cards.where((c) => c.match.isLive).toList();
+      }
     }
     _log('homeFeed done ${cards.length} in ${sw.elapsedMilliseconds}ms');
     return groupByCompetition(cards);
   }
 
-  Future<List<MatchCardVm>> liveFeed() async {
-    final proj = await _api.matchesLive();
+  Future<List<MatchCardVm>> liveFeed({bool forceRefresh = true}) async {
+    final proj = await _api.matchesLive(forceRefresh: forceRefresh);
     if (proj.items.isNotEmpty) {
       return cardsFromProjectionItems(
         proj.items,
@@ -631,19 +641,35 @@ class FootballRepository {
         } catch (_) {}
       }(),
       () async {
-        if (events.isNotEmpty) return;
         try {
-          events = await _api.matchEvents(m.id);
+          // Live: always refresh events. Others: fill if snapshot empty.
+          events = await _api.matchEvents(
+            m.id,
+            forceRefresh: m.isLive || events.isEmpty,
+          );
         } catch (_) {}
       }(),
     ]);
+    // Newest first for the timeline UI.
+    events = [...events]..sort((a, b) {
+        final am = (a.minute ?? 0) * 100 + (a.extraMinute ?? 0);
+        final bm = (b.minute ?? 0) * 100 + (b.extraMinute ?? 0);
+        final byMin = bm.compareTo(am);
+        if (byMin != 0) return byMin;
+        return b.sequence.compareTo(a.sequence);
+      });
     return (events: events, venue: venue);
   }
 
   Future<MatchStatistics?> matchStats(String matchId) async {
     try {
-      return await _api.matchStatistics(matchId);
-    } catch (_) {
+      final m = _matches[matchId];
+      return await _api.matchStatistics(
+        matchId,
+        forceRefresh: m?.isLive == true || m?.isUpcoming == true,
+      );
+    } catch (e) {
+      _log('matchStats fail $matchId: $e');
       return null;
     }
   }

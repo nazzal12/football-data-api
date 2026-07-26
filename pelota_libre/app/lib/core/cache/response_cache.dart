@@ -21,9 +21,12 @@ class CacheEntry {
   }
 
   /// Soft-stale window: serve while revalidating.
-  /// Uses at least 5 minutes so max-age=0 responses still feel instant on reopen.
+  /// Short-TTL paths (live ≤60s) stay tight; longer paths keep a wider SWR window.
   bool get isUsable {
     final ageMs = DateTime.now().millisecondsSinceEpoch - storedAtMs;
+    if (maxAgeSeconds <= 60) {
+      return ageMs < maxAgeSeconds * 2 * 1000;
+    }
     final soft = (maxAgeSeconds * 3).clamp(300, 86_400);
     return ageMs < soft * 1000;
   }
@@ -94,6 +97,8 @@ int parseMaxAge(String? cacheControl, {int fallback = 60}) {
   final match = RegExp(r'max-age=(\d+)').firstMatch(cacheControl);
   if (match == null) return fallback;
   final parsed = int.tryParse(match.group(1)!);
-  if (parsed == null || parsed <= 0) return fallback;
+  if (parsed == null) return fallback;
+  // Honor short TTLs (incl. 0 → treat as immediately stale).
+  if (parsed <= 0) return 0;
   return parsed;
 }

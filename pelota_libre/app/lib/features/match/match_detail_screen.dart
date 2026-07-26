@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -15,7 +17,14 @@ import '../../widgets/match_widgets.dart';
 final matchCardProvider =
     FutureProvider.autoDispose.family<MatchCardVm, String>((ref, id) async {
   final repo = ref.read(footballRepositoryProvider);
-  final m = await repo.match(id);
+  final m = await repo.match(id, forceRefresh: true);
+  // Live detail: keep scoreboard/minute fresh.
+  if (m.isLive) {
+    final timer = Timer(const Duration(seconds: 5), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  }
   final card = await repo.hydrateMatch(m);
   if (card == null) {
     throw ApiException(status: 404, message: 'Unable to hydrate match');
@@ -26,7 +35,13 @@ final matchCardProvider =
 final matchTimelineProvider = FutureProvider.autoDispose
     .family<({List<MatchEvent> events, Venue? venue}), String>((ref, id) async {
   final repo = ref.read(footballRepositoryProvider);
-  final m = await repo.match(id);
+  final m = await repo.match(id, forceRefresh: true);
+  if (m.isLive) {
+    final timer = Timer(const Duration(seconds: 5), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  }
   return repo.matchTimelineExtras(m);
 });
 
@@ -445,22 +460,7 @@ class _Timeline extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: dark ? PlColors.darkBorder : PlColors.lightBorder,
-                width: 2,
-              ),
-            ),
-            child: Text(
-              'KICKOFF',
-              style: GoogleFonts.jetBrainsMono(letterSpacing: 2, fontSize: 11),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+        // Newest events first; kickoff marker at the bottom.
         for (final e in events)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -546,6 +546,22 @@ class _Timeline extends StatelessWidget {
               ],
             ),
           ),
+        const SizedBox(height: 8),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: dark ? PlColors.darkBorder : PlColors.lightBorder,
+                width: 2,
+              ),
+            ),
+            child: Text(
+              'KICKOFF',
+              style: GoogleFonts.jetBrainsMono(letterSpacing: 2, fontSize: 11),
+            ),
+          ),
+        ),
       ],
     );
   }

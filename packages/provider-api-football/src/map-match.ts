@@ -6,8 +6,11 @@ export type IdResolver = {
   teamId: (externalId: number) => string | Promise<string>;
   seasonId: (competitionExternalId: number, seasonYear: number) => string | Promise<string>;
   competitionId: (externalId: number) => string | Promise<string>;
+  matchId?: (externalId: number) => string | Promise<string>;
+  coachId?: (externalId: number) => string | Promise<string>;
   venueId?: (externalId: number) => string | undefined | Promise<string | undefined>;
   playerId?: (externalId: number) => string | undefined | Promise<string | undefined>;
+  countryId?: (name: string) => string | undefined | Promise<string | undefined>;
 };
 
 function mapPhase(statusShort: string): MatchPhase {
@@ -49,8 +52,11 @@ export async function mapFixtureToMatch(
       extraMinute: e.time.extra ?? undefined,
       type: mapEventType(e.type, e.detail),
       teamId: await ids.teamId(e.team.id),
+      teamName: e.team.name ?? undefined,
       playerId: e.player.id != null ? await ids.playerId?.(e.player.id) : undefined,
+      playerName: e.player.name ?? undefined,
       assistPlayerId: e.assist.id != null ? await ids.playerId?.(e.assist.id) : undefined,
+      assistPlayerName: e.assist.name ?? undefined,
       detail: e.detail,
     });
   }

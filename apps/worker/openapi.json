@@ -2,101 +2,17 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Football API",
-    "version": "0.2.0",
-    "description": "Provider-agnostic public REST API for football data."
+    "version": "1.0.0",
+    "description": "Canonical OpenAPI lives at docs/openapi.yaml. Integration guide: docs/API.md."
   },
-  "paths": {
-    "/health": {
-      "get": {
-        "summary": "Liveness",
-        "responses": { "200": { "description": "OK" } }
-      }
-    },
-    "/v1/matches/{id}": {
-      "get": {
-        "summary": "Get match by internal UUID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Match" },
-          "400": { "description": "Validation" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/v1/matches/by-external/{externalId}": {
-      "get": {
-        "summary": "Get match by upstream fixture id (creates internal UUID)",
-        "parameters": [
-          {
-            "name": "externalId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Match" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/v1/teams/{id}": {
-      "get": {
-        "summary": "Get team by internal UUID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "format": "uuid" }
-          }
-        ],
-        "responses": { "200": { "description": "Team" } }
-      }
-    },
-    "/v1/teams/by-external/{externalId}": {
-      "get": {
-        "summary": "Get team by upstream team id",
-        "parameters": [
-          {
-            "name": "externalId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": { "200": { "description": "Team" } }
-      }
-    },
-    "/v1/projections/matches/{key}": {
-      "get": {
-        "summary": "Get match list projection by key",
-        "parameters": [
-          {
-            "name": "key",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
-        "responses": {
-          "200": { "description": "Projection" },
-          "404": { "description": "Not found" }
-        }
-      }
-    },
-    "/v1/id-maps": {
-      "put": {
-        "summary": "Bind external id to internal UUID",
-        "responses": { "200": { "description": "Bound" } }
-      }
+  "servers": [
+    {
+      "url": "https://football-api.nazzalkausar12.workers.dev"
     }
+  ],
+  "paths": {},
+  "externalDocs": {
+    "description": "Full OpenAPI + client guide",
+    "url": "../docs/openapi.yaml"
   }
 }

@@ -11,6 +11,7 @@ import {
   err,
   notFoundError,
   ok,
+  PROVIDER_FIXTURE_TIMEZONE,
   providerError,
   sha256Hex,
   stableStringify,
@@ -25,6 +26,7 @@ import type {
   InjuryReport,
   Match,
   MatchEvent,
+  MatchListItem,
   MatchListProjection,
   MatchOdds,
   MatchPlayerStatistics,
@@ -72,13 +74,20 @@ import {
 import {
   applyFailedRefresh,
   applySuccessfulRefresh,
+  dateListPolicy,
   decide,
   policyFor,
   staticPolicy,
+  liveListPolicy,
   tablePolicy,
   withLease,
 } from "@football-api/lifecycle";
-import type { FootballProvider, IdBridge, QuotaSnapshot } from "@football-api/provider";
+import type {
+  FootballProvider,
+  IdBridge,
+  ProviderMatchListRow,
+  QuotaSnapshot,
+} from "@football-api/provider";
 import type { HttpCache, MetaStore, ObjectMetadata, ObjectStore } from "@football-api/storage";
 import {
   getMatchListProjection as loadMatchListProjectionDoc,
@@ -309,13 +318,21 @@ export class Orchestrator {
   async getMatch(request: Request, internalId: string): Promise<Result<GetMatchResult, AppError>> {
     const cached = await this.deps.cache.match(request);
     if (cached) {
-      const body = await cached.json();
-      return ok({
-        match: parseCanonical(matchSchema, body),
-        cacheHit: true,
-        refreshed: false,
-        cacheTtlSeconds: 0,
-      });
+      const match = parseCanonical(matchSchema, await cached.json());
+      const nowMs = this.deps.clock.nowMs();
+      const pastKickoffFuture =
+        match.phase === "future" && Date.parse(match.kickoffAt) <= nowMs;
+      if (!pastKickoffFuture && !matchEventsNeedDisplayNames(match)) {
+        const policy = policyFor("match", match.phase, nowMs, {
+          kickoffAtMs: Date.parse(match.kickoffAt),
+        });
+        return ok({
+          match,
+          cacheHit: true,
+          refreshed: false,
+          cacheTtlSeconds: policy.cacheTtlSeconds,
+        });
+      }
     }
 
     const mKey = metaKey("match", internalId);
@@ -341,10 +358,30 @@ export class Orchestrator {
       hasServableObject: current !== null,
       quotaAvailable: isQuotaAvailable(quota),
     });
-    const effectiveAction =
+    let effectiveAction =
       current === null && (action.type === "error" || action.type === "wait")
         ? { type: "refresh" as const, swr: false, acquireLease: true }
         : action;
+
+    if (
+      current &&
+      matchEventsNeedDisplayNames(current) &&
+      isQuotaAvailable(quota) &&
+      (effectiveAction.type === "serve" || effectiveAction.type === "wait")
+    ) {
+      effectiveAction = { type: "refresh", swr: false, acquireLease: true };
+    }
+
+    // Kickoff passed but snapshot still "future" — force refresh into live/finished.
+    if (
+      current &&
+      current.phase === "future" &&
+      Date.parse(current.kickoffAt) <= nowMs &&
+      isQuotaAvailable(quota) &&
+      (effectiveAction.type === "serve" || effectiveAction.type === "wait")
+    ) {
+      effectiveAction = { type: "refresh", swr: true, acquireLease: true };
+    }
 
     if (effectiveAction.type === "serve" && current) {
       if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
@@ -549,27 +586,33 @@ export class Orchestrator {
       );
     }
 
+    const nowMs = this.deps.clock.nowMs();
+    const today = calendarDateInTz(nowMs, PROVIDER_FIXTURE_TIMEZONE);
+    const racing =
+      (parsed.kind === "date" && parsed.date >= today) ||
+      parsed.kind === "league" ||
+      parsed.kind === "team";
+    // Live: 5s. Today/tomorrow date lists: 5m. League/team: 5h. Past dates: forever.
+    const policy =
+      parsed.kind === "live"
+        ? liveListPolicy()
+        : parsed.kind === "date"
+          ? dateListPolicy(racing)
+          : tablePolicy(racing);
+
     const cached = await this.deps.cache.match(request);
     if (cached) {
       return ok({
         projection: parseCanonical(matchListProjectionSchema, await cached.json()),
         cacheHit: true,
         refreshed: false,
-        cacheTtlSeconds: 0,
+        cacheTtlSeconds: policy.cacheTtlSeconds,
       });
     }
 
     const pKey = projectionKey("match_list", key);
     const meta = await this.deps.meta.getJson<ObjectMetadata>(pKey);
     const current = await loadMatchListProjectionDoc(this.deps.objects, this.deps.meta, key);
-    const nowMs = this.deps.clock.nowMs();
-    const today = new Date(nowMs).toISOString().slice(0, 10);
-    const racing =
-      parsed.kind === "live" ||
-      (parsed.kind === "date" && parsed.date >= today) ||
-      parsed.kind === "league" ||
-      parsed.kind === "team";
-    const policy = tablePolicy(racing);
     const quota = await this.deps.meta.getJson<QuotaSnapshot>(quotaKey(this.deps.provider.name));
     const action = decide({
       meta,
@@ -578,10 +621,23 @@ export class Orchestrator {
       hasServableObject: current !== null,
       quotaAvailable: isQuotaAvailable(quota),
     });
-    const effectiveAction =
+    let effectiveAction =
       current === null && (action.type === "error" || action.type === "wait")
         ? { type: "refresh" as const, swr: false, acquireLease: true }
         : action;
+
+    // Honor tighter policies against older softExpireAt (e.g. date lists 5h → 5m).
+    if (
+      current &&
+      meta?.lastRefreshedAt !== undefined &&
+      nowMs >= meta.lastRefreshedAt + policy.softTtlMs &&
+      isQuotaAvailable(quota) &&
+      (effectiveAction.type === "serve" ||
+        effectiveAction.type === "wait" ||
+        effectiveAction.type === "error")
+    ) {
+      effectiveAction = { type: "refresh", swr: true, acquireLease: true };
+    }
 
     if (effectiveAction.type === "serve" && current) {
       if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
@@ -615,34 +671,7 @@ export class Orchestrator {
       withLease(meta, "projection", projectionId, owner, nowMs, policy.leaseTtlMs, "table"),
     );
 
-    let listed: Result<string[], AppError>;
-    if (parsed.kind === "date") {
-      if (!this.deps.provider.listMatchExternalIdsByDate) {
-        return err(notFoundError("Match list provider not implemented"));
-      }
-      listed = await this.deps.provider.listMatchExternalIdsByDate(parsed.date);
-    } else if (parsed.kind === "league") {
-      if (!this.deps.provider.listMatchExternalIdsByLeagueSeason) {
-        return err(notFoundError("League match list provider not implemented"));
-      }
-      listed = await this.deps.provider.listMatchExternalIdsByLeagueSeason(
-        parsed.leagueId,
-        parsed.seasonYear,
-      );
-    } else if (parsed.kind === "team") {
-      if (!this.deps.provider.listMatchExternalIdsByTeamSeason) {
-        return err(notFoundError("Team match list provider not implemented"));
-      }
-      listed = await this.deps.provider.listMatchExternalIdsByTeamSeason(
-        parsed.teamId,
-        parsed.seasonYear,
-      );
-    } else {
-      if (!this.deps.provider.listLiveMatchExternalIds) {
-        return err(notFoundError("Live match list provider not implemented"));
-      }
-      listed = await this.deps.provider.listLiveMatchExternalIds();
-    }
+    const listed = await this.listProjectionRows(parsed);
     const providerQuota = this.deps.provider.getQuota?.();
     if (providerQuota) {
       await this.deps.meta.putJson(quotaKey(this.deps.provider.name), providerQuota);
@@ -671,18 +700,71 @@ export class Orchestrator {
     }
 
     const matchIds: string[] = [];
+    const items: MatchListItem[] = [];
     try {
-      const chunkSize = 40;
-      for (let i = 0; i < listed.value.length; i += chunkSize) {
-        const chunk = listed.value.slice(i, i + chunkSize);
-        const resolved = await Promise.all(
-          chunk.map(async (externalId) => {
-            const internalId = await this.ensureExternal("match", externalId);
-            if (!internalId.ok) throw internalId.error;
-            return internalId.value;
+      const capped = listed.value.slice(0, 60);
+      const chunkSize = 10;
+      for (let i = 0; i < capped.length; i += chunkSize) {
+        const chunk = capped.slice(i, i + chunkSize);
+        const built = await Promise.all(
+          chunk.map(async (row) => {
+            // Id-only fallback (fake/tests): resolve match UUID, skip card warm.
+            if (row.leagueExternalId === "0") {
+              const matchId = await this.ensureExternal("match", row.matchExternalId);
+              if (!matchId.ok) throw matchId.error;
+              return { matchId: matchId.value, item: null as MatchListItem | null };
+            }
+            const ids = await this.resolveListRowIds(row);
+            if (!ids.ok) throw ids.error;
+            const { matchId, competitionId, homeTeamId, awayTeamId, seasonId } = ids.value;
+            const match: Match = {
+              schemaVersion: 1,
+              id: matchId,
+              seasonId,
+              competitionId,
+              phase: row.phase,
+              status: row.status,
+              kickoffAt: row.kickoffAt,
+              homeTeamId,
+              awayTeamId,
+              score: row.score,
+              minute: row.minute,
+              events: [],
+              lineups: [],
+            };
+            // Warm R2 for cards — never overwrite finished/historical snapshots.
+            await this.persistMatchSnapshot(matchId, match);
+            await this.persistTeamStub(homeTeamId, row.homeName, row.homeLogoUrl);
+            await this.persistTeamStub(awayTeamId, row.awayName, row.awayLogoUrl);
+            await this.persistCompetitionStub(
+              competitionId,
+              row.leagueName,
+              row.leagueLogoUrl,
+            );
+            const item: MatchListItem = {
+              matchId,
+              competitionId,
+              homeTeamId,
+              awayTeamId,
+              kickoffAt: row.kickoffAt,
+              phase: row.phase,
+              status: row.status,
+              score: row.score,
+              minute: row.minute,
+              homeName: row.homeName,
+              awayName: row.awayName,
+              homeLogoUrl: row.homeLogoUrl,
+              awayLogoUrl: row.awayLogoUrl,
+              competitionName: row.leagueName,
+              competitionLogoUrl: row.leagueLogoUrl,
+            };
+            return { matchId, item };
           }),
         );
-        matchIds.push(...resolved);
+        for (const row of built) {
+          matchIds.push(row.matchId);
+          if (row.item) items.push(row.item);
+        }
       }
     } catch (cause) {
       if (cause && typeof cause === "object" && "code" in cause) {
@@ -692,7 +774,7 @@ export class Orchestrator {
       return err(providerError("Failed to resolve match ids for projection", { cause: message }));
     }
 
-    const hash = await sha256Hex(stableStringify({ key, matchIds }));
+    const hash = await sha256Hex(stableStringify({ key, matchIds, items }));
     const same = meta?.contentHash === hash;
     const nextGeneration = same ? (meta?.generation ?? 1) : (meta?.generation ?? 0) + 1;
     const r2Key =
@@ -702,6 +784,7 @@ export class Orchestrator {
         projectionId,
         key,
         matchIds,
+        items,
         generation: nextGeneration,
       });
     }
@@ -726,6 +809,7 @@ export class Orchestrator {
       kind: "match_list",
       key,
       matchIds,
+      ...(items.length > 0 ? { items } : {}),
     };
     await this.fillCache(request, projection, policy.cacheTtlSeconds);
     return ok({
@@ -742,7 +826,12 @@ export class Orchestrator {
   ): Promise<Result<GetMatchEventsResult, AppError>> {
     const loaded = await this.getMatch(request, matchId);
     if (!loaded.ok) return loaded;
-    if (loaded.value.match.events.length > 0 || !this.deps.provider.getMatchEvents) {
+    const isLive = loaded.value.match.phase === "live";
+    // Live matches always re-fetch events; finished/future can reuse snapshot.
+    if (
+      (!isLive && loaded.value.match.events.length > 0) ||
+      !this.deps.provider.getMatchEvents
+    ) {
       return ok({
         matchId,
         events: loaded.value.match.events,
@@ -811,6 +900,8 @@ export class Orchestrator {
     if (!this.deps.provider.getMatchStatistics) {
       return err(notFoundError("Match statistics provider not implemented"));
     }
+    const matchLoaded = await this.getMatch(request, matchId);
+    if (!matchLoaded.ok) return matchLoaded;
     const externalId = this.deps.ids.toExternal
       ? await this.deps.ids.toExternal(matchId)
       : null;
@@ -826,6 +917,7 @@ export class Orchestrator {
       schema: matchStatisticsSchema,
       freshnessClass: "table",
       label: "Match statistics",
+      matchPhase: matchLoaded.value.match.phase,
       fetch: (id, ext) => this.deps.provider.getMatchStatistics!(id, matchId, ext),
     });
     if (!result.ok) return result;
@@ -1403,16 +1495,248 @@ export class Orchestrator {
     });
   }
 
+  private async listProjectionRows(
+    parsed:
+      | { kind: "date"; date: string }
+      | { kind: "league"; leagueId: string; seasonYear: string }
+      | { kind: "team"; teamId: string; seasonYear: string }
+      | { kind: "live" },
+  ): Promise<Result<ProviderMatchListRow[], AppError>> {
+    if (parsed.kind === "date") {
+      if (this.deps.provider.listMatchRowsByDate) {
+        return this.deps.provider.listMatchRowsByDate(parsed.date);
+      }
+      if (!this.deps.provider.listMatchExternalIdsByDate) {
+        return err(notFoundError("Match list provider not implemented"));
+      }
+      const ids = await this.deps.provider.listMatchExternalIdsByDate(parsed.date);
+      if (!ids.ok) return ids;
+      return ok(ids.value.map((matchExternalId) => this.stubRow(matchExternalId)));
+    }
+    if (parsed.kind === "league") {
+      if (this.deps.provider.listMatchRowsByLeagueSeason) {
+        return this.deps.provider.listMatchRowsByLeagueSeason(
+          parsed.leagueId,
+          parsed.seasonYear,
+        );
+      }
+      if (!this.deps.provider.listMatchExternalIdsByLeagueSeason) {
+        return err(notFoundError("League match list provider not implemented"));
+      }
+      const ids = await this.deps.provider.listMatchExternalIdsByLeagueSeason(
+        parsed.leagueId,
+        parsed.seasonYear,
+      );
+      if (!ids.ok) return ids;
+      return ok(ids.value.map((matchExternalId) => this.stubRow(matchExternalId)));
+    }
+    if (parsed.kind === "team") {
+      if (this.deps.provider.listMatchRowsByTeamSeason) {
+        return this.deps.provider.listMatchRowsByTeamSeason(
+          parsed.teamId,
+          parsed.seasonYear,
+        );
+      }
+      if (!this.deps.provider.listMatchExternalIdsByTeamSeason) {
+        return err(notFoundError("Team match list provider not implemented"));
+      }
+      const ids = await this.deps.provider.listMatchExternalIdsByTeamSeason(
+        parsed.teamId,
+        parsed.seasonYear,
+      );
+      if (!ids.ok) return ids;
+      return ok(ids.value.map((matchExternalId) => this.stubRow(matchExternalId)));
+    }
+    if (this.deps.provider.listLiveMatchRows) {
+      return this.deps.provider.listLiveMatchRows();
+    }
+    if (!this.deps.provider.listLiveMatchExternalIds) {
+      return err(notFoundError("Live match list provider not implemented"));
+    }
+    const ids = await this.deps.provider.listLiveMatchExternalIds();
+    if (!ids.ok) return ids;
+    return ok(ids.value.map((matchExternalId) => this.stubRow(matchExternalId)));
+  }
+
+  private stubRow(matchExternalId: string): ProviderMatchListRow {
+    return {
+      matchExternalId,
+      leagueExternalId: "0",
+      homeTeamExternalId: "0",
+      awayTeamExternalId: "0",
+      seasonYear: new Date().getUTCFullYear(),
+      kickoffAt: new Date(0).toISOString(),
+      phase: "future",
+      status: "NS",
+      homeName: "Home",
+      awayName: "Away",
+      leagueName: "Competition",
+    };
+  }
+
+  private async resolveListRowIds(row: ProviderMatchListRow): Promise<
+    Result<
+      {
+        matchId: string;
+        competitionId: string;
+        homeTeamId: string;
+        awayTeamId: string;
+        seasonId: string;
+      },
+      AppError
+    >
+  > {
+    const matchId = await this.ensureExternal("match", row.matchExternalId);
+    if (!matchId.ok) return matchId;
+    const competitionId = await this.ensureExternal("competition", row.leagueExternalId);
+    if (!competitionId.ok) return competitionId;
+    const homeTeamId = await this.ensureExternal("team", row.homeTeamExternalId);
+    if (!homeTeamId.ok) return homeTeamId;
+    const awayTeamId = await this.ensureExternal("team", row.awayTeamExternalId);
+    if (!awayTeamId.ok) return awayTeamId;
+    const seasonId = await this.ensureExternal(
+      "season",
+      `${row.leagueExternalId}:${row.seasonYear}`,
+    );
+    if (!seasonId.ok) return seasonId;
+    return ok({
+      matchId: matchId.value,
+      competitionId: competitionId.value,
+      homeTeamId: homeTeamId.value,
+      awayTeamId: awayTeamId.value,
+      seasonId: seasonId.value,
+    });
+  }
+
+  /** Best-effort team card cache — never overwrites a richer existing document. */
+  private async persistTeamStub(
+    teamId: string,
+    name: string,
+    logoUrl?: string,
+  ): Promise<void> {
+    if (teamId.length < 8) return;
+    const tKey = metaKey("team", teamId);
+    const meta = await this.deps.meta.getJson<ObjectMetadata>(tKey);
+    if (meta?.r2Key) {
+      const bytes = await this.deps.objects.get(meta.r2Key);
+      if (bytes) {
+        try {
+          const existing = parseCanonical(
+            teamSchema,
+            JSON.parse(textDecoder.decode(bytes)),
+          );
+          if (existing.logoUrl || !logoUrl) return;
+        } catch {
+          /* replace below */
+        }
+      }
+    }
+    const team: Team = {
+      schemaVersion: 1,
+      id: teamId,
+      name,
+      ...(logoUrl ? { logoUrl } : {}),
+    };
+    const generation = (meta?.generation ?? 0) + 1;
+    const r2Key = objectKey("team", teamId, generation);
+    await this.deps.objects.put(r2Key, textEncoder.encode(JSON.stringify(team)));
+    const nowMs = this.deps.clock.nowMs();
+    const policy = staticPolicy();
+    await this.deps.meta.putJson(
+      tKey,
+      applySuccessfulRefresh({
+        previous: meta,
+        objectType: "team",
+        objectId: teamId,
+        freshnessClass: "static",
+        r2Key,
+        generation,
+        contentHash: await sha256Hex(stableStringify(team)),
+        nowMs,
+        policy,
+      }),
+    );
+  }
+
+  private async persistCompetitionStub(
+    competitionId: string,
+    name: string,
+    logoUrl?: string,
+  ): Promise<void> {
+    if (competitionId.length < 8) return;
+    const cKey = metaKey("competition", competitionId);
+    const meta = await this.deps.meta.getJson<ObjectMetadata>(cKey);
+    if (meta?.r2Key) {
+      const bytes = await this.deps.objects.get(meta.r2Key);
+      if (bytes) {
+        try {
+          const existing = parseCanonical(
+            competitionSchema,
+            JSON.parse(textDecoder.decode(bytes)),
+          );
+          if (existing.logoUrl || !logoUrl) return;
+        } catch {
+          /* replace below */
+        }
+      }
+    }
+    const competition: Competition = {
+      schemaVersion: 1,
+      id: competitionId,
+      name,
+      format: "league",
+      isLeague: true,
+      ...(logoUrl ? { logoUrl } : {}),
+    };
+    const generation = (meta?.generation ?? 0) + 1;
+    const r2Key = objectKey("competition", competitionId, generation);
+    await this.deps.objects.put(r2Key, textEncoder.encode(JSON.stringify(competition)));
+    const nowMs = this.deps.clock.nowMs();
+    const policy = staticPolicy();
+    await this.deps.meta.putJson(
+      cKey,
+      applySuccessfulRefresh({
+        previous: meta,
+        objectType: "competition",
+        objectId: competitionId,
+        freshnessClass: "static",
+        r2Key,
+        generation,
+        contentHash: await sha256Hex(stableStringify(competition)),
+        nowMs,
+        policy,
+      }),
+    );
+  }
+
   private async persistMatchSnapshot(matchId: string, match: Match): Promise<void> {
     const mKey = metaKey("match", matchId);
     const meta = await this.deps.meta.getJson<ObjectMetadata>(mKey);
+    // Finished / historical are frozen forever — cron/date lists must not rewrite them.
+    if (meta?.phase === "finished" || meta?.phase === "historical") {
+      return;
+    }
+    // List-row warmups often omit events/lineups — keep richer snapshot fields.
+    let next = match;
+    if (meta?.r2Key && (match.events.length === 0 || match.lineups.length === 0)) {
+      const bytes = await this.deps.objects.get(meta.r2Key);
+      if (bytes) {
+        const prev = parseCanonical(matchSchema, JSON.parse(textDecoder.decode(bytes)));
+        next = {
+          ...match,
+          venueId: match.venueId ?? prev.venueId,
+          events: match.events.length > 0 ? match.events : prev.events,
+          lineups: match.lineups.length > 0 ? match.lineups : prev.lineups,
+        };
+      }
+    }
     const generation = (meta?.generation ?? 0) + 1;
     const r2Key = objectKey("match", matchId, generation);
-    await this.deps.objects.put(r2Key, textEncoder.encode(JSON.stringify(match)));
-    const hash = await sha256Hex(stableStringify(match));
+    await this.deps.objects.put(r2Key, textEncoder.encode(JSON.stringify(next)));
+    const hash = await sha256Hex(stableStringify(next));
     const nowMs = this.deps.clock.nowMs();
-    const policy = policyFor("match", match.phase, nowMs, {
-      kickoffAtMs: Date.parse(match.kickoffAt),
+    const policy = policyFor("match", next.phase, nowMs, {
+      kickoffAtMs: Date.parse(next.kickoffAt),
     });
     await this.deps.meta.putJson(
       mKey,
@@ -1420,9 +1744,15 @@ export class Orchestrator {
         previous: meta,
         objectType: "match",
         objectId: matchId,
-        phase: match.phase,
+        phase: next.phase,
         freshnessClass:
-          match.phase === "live" ? "live" : match.phase === "future" ? "edition" : "table",
+          next.phase === "live"
+            ? "live"
+            : next.phase === "future"
+              ? "edition"
+              : next.phase === "finished" || next.phase === "historical"
+                ? "static"
+                : "table",
         r2Key,
         generation,
         contentHash: hash,
@@ -1457,16 +1787,38 @@ export class Orchestrator {
     schema: z.ZodType<T>;
     freshnessClass: FreshnessClass;
     label: string;
+    /** When set, align sub-resource TTL with parent match phase (live=5s, finished=forever). */
+    matchPhase?: Match["phase"];
     fetch: (internalId: string, externalId: string) => Promise<Result<T, AppError>>;
   }): Promise<Result<ResourceResult<T>, AppError>> {
-    const cached = await this.deps.cache.match(args.request);
+    const nowMs = this.deps.clock.nowMs();
+    const policy =
+      args.matchPhase === "live"
+        ? liveListPolicy()
+        : args.matchPhase === "finished" || args.matchPhase === "historical"
+          ? tablePolicy(false)
+          : policyFor(args.objectType, undefined, nowMs, {
+              racing: args.freshnessClass === "table",
+            });
+
+    // Live match sub-resources must not be served from a longer pre-match edge cache.
+    const cached =
+      args.matchPhase === "live" ? undefined : await this.deps.cache.match(args.request);
     if (cached) {
-      return ok({
-        data: parseCanonical(args.schema, await cached.json()),
-        cacheHit: true,
-        refreshed: false,
-        cacheTtlSeconds: 0,
-      });
+      const data = parseCanonical(args.schema, await cached.json());
+      const missingLogo =
+        (args.objectType === "team" || args.objectType === "competition") &&
+        !(data as { logoUrl?: string }).logoUrl;
+      const missingLeaderNames =
+        args.objectType === "leaders" && leadersNeedDisplayNames(data);
+      if (!missingLogo && !missingLeaderNames) {
+        return ok({
+          data,
+          cacheHit: true,
+          refreshed: false,
+          cacheTtlSeconds: policy.cacheTtlSeconds,
+        });
+      }
     }
 
     const mKey = metaKey(args.objectType, args.internalId);
@@ -1478,11 +1830,6 @@ export class Orchestrator {
         current = parseCanonical(args.schema, JSON.parse(textDecoder.decode(bytes)));
       }
     }
-
-    const nowMs = this.deps.clock.nowMs();
-    const policy = policyFor(args.objectType, undefined, nowMs, {
-      racing: args.freshnessClass === "table",
-    });
     const quota = await this.deps.meta.getJson<QuotaSnapshot>(quotaKey(this.deps.provider.name));
     const action = decide({
       meta,
@@ -1491,10 +1838,27 @@ export class Orchestrator {
       hasServableObject: current !== null,
       quotaAvailable: isQuotaAvailable(quota),
     });
-    const effectiveAction =
+    let effectiveAction =
       current === null && (action.type === "error" || action.type === "wait")
         ? { type: "refresh" as const, swr: false, acquireLease: true }
         : action;
+
+    const missingLogo =
+      current != null &&
+      (args.objectType === "team" || args.objectType === "competition") &&
+      !(current as { logoUrl?: string }).logoUrl &&
+      isQuotaAvailable(quota);
+    const missingLeaderNames =
+      current != null &&
+      args.objectType === "leaders" &&
+      leadersNeedDisplayNames(current) &&
+      isQuotaAvailable(quota);
+    if (
+      (missingLogo || missingLeaderNames) &&
+      (effectiveAction.type === "serve" || effectiveAction.type === "wait")
+    ) {
+      effectiveAction = { type: "refresh", swr: false, acquireLease: true };
+    }
 
     if (effectiveAction.type === "serve" && current) {
       if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
@@ -1687,6 +2051,11 @@ export class Orchestrator {
     }
 
     const match = result.value;
+    // Policy must follow the *refreshed* phase (future→live must become 5s, not 5h).
+    const refreshedAt = this.deps.clock.nowMs();
+    const nextPolicy = policyFor("match", match.phase, refreshedAt, {
+      kickoffAtMs: Date.parse(match.kickoffAt),
+    });
     const hash = await sha256Hex(stableStringify(match));
     const same = meta?.contentHash === hash;
     const nextGeneration = same ? (meta?.generation ?? 1) : (meta?.generation ?? 0) + 1;
@@ -1706,11 +2075,11 @@ export class Orchestrator {
         r2Key,
         generation: nextGeneration,
         contentHash: hash,
-        nowMs: this.deps.clock.nowMs(),
-        policy,
+        nowMs: refreshedAt,
+        policy: nextPolicy,
       }),
     );
-    await this.fillCache(request, match, policy.cacheTtlSeconds);
+    await this.fillCache(request, match, nextPolicy.cacheTtlSeconds);
     this.deps.logger.info("match.refresh.success", {
       id: internalId,
       phase: match.phase,
@@ -1721,7 +2090,7 @@ export class Orchestrator {
       match,
       cacheHit: false,
       refreshed: true,
-      cacheTtlSeconds: policy.cacheTtlSeconds,
+      cacheTtlSeconds: nextPolicy.cacheTtlSeconds,
     });
   }
 
@@ -1748,4 +2117,30 @@ function isQuotaAvailable(quota: QuotaSnapshot | null): boolean {
   if (quota.dailyRemaining !== undefined && quota.dailyRemaining <= 0) return false;
   if (quota.minuteRemaining !== undefined && quota.minuteRemaining <= 0) return false;
   return true;
+}
+
+/** YYYY-MM-DD in the fixture timezone (not UTC). */
+function calendarDateInTz(nowMs: number, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(nowMs));
+}
+
+function matchEventsNeedDisplayNames(match: Match): boolean {
+  return match.events.some(
+    (e) =>
+      (e.playerId != null && !e.playerName) ||
+      (e.assistPlayerId != null && !e.assistPlayerName) ||
+      (e.teamId != null && !e.teamName),
+  );
+}
+
+function leadersNeedDisplayNames(data: unknown): boolean {
+  if (!data || typeof data !== "object") return false;
+  const rows = (data as { rows?: Array<{ playerName?: string }> }).rows;
+  if (!Array.isArray(rows) || rows.length === 0) return false;
+  return rows.some((r) => !r.playerName);
 }

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Team Profile - PELOTA LIBRE</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Anton and Archivo Narrow -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e27",
+                        "on-primary-container": "#007128",
+                        "tertiary-fixed": "#e2e2e2",
+                        "primary-fixed": "#6bff83",
+                        "background": "#fcf9f8",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "outline-variant": "#b9ccb5",
+                        "on-primary-fixed-variant": "#00531b",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface": "#fcf9f8",
+                        "on-error-container": "#93000a",
+                        "outline": "#6b7c68",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "tertiary": "#5d5f5f",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "surface-bright": "#fcf9f8",
+                        "primary-container": "#00ff66",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-container-high": "#eae7e7",
+                        "inverse-primary": "#00e55b",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary-container": "#dddddd",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#3b4b3a",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary-container": "#606161",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#f0eded",
+                        "on-secondary-container": "#646464",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "surface-variant": "#e5e2e1",
+                        "primary": "#006e27",
+                        "inverse-surface": "#313030",
+                        "secondary-container": "#e2e2e2",
+                        "primary-fixed-dim": "#00e55b",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#002107",
+                        "secondary": "#5e5e5e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "16px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "lg": "48px",
+                        "xs": "8px",
+                        "xl": "80px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Archivo Narrow"],
+                        "headline-lg": ["Anton"],
+                        "headline-md": ["Anton"],
+                        "headline-lg-mobile": ["Anton"],
+                        "label-sm": ["Archivo Narrow"],
+                        "body-md": ["Archivo Narrow"],
+                        "display-lg": ["Anton"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "headline-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "0.02em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Hide scrollbar for tabs */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-40 bg-surface border-b-2 border-on-background flat no shadows">
+<div class="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-2 w-full">
+<span class="material-symbols-outlined text-primary text-headline-md">sports_soccer</span>
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tighter italic">PELOTA LIBRE</h1>
+<!-- Desktop Navigation injected here based on rules -->
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-label-sm text-label-sm uppercase text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors py-1 px-2" href="#">Home</a>
+<a class="font-label-sm text-label-sm uppercase text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors py-1 px-2" href="#">Leagues</a>
+<a class="font-label-sm text-label-sm uppercase text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors py-1 px-2" href="#">Live</a>
+<a class="font-label-sm text-label-sm uppercase text-primary font-bold border-b-4 border-primary py-1 px-2" href="#">Teams</a>
+<a class="font-label-sm text-label-sm uppercase text-on-surface-variant hover:bg-primary-container hover:text-on-primary-container transition-colors py-1 px-2" href="#">Profile</a>
+</nav>
+<span class="material-symbols-outlined text-primary text-headline-md hover:bg-primary-container hover:text-on-primary-container transition-colors cursor-pointer">search</span>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 flex flex-col w-full max-w-[1440px] mx-auto pb-24 md:pb-8">
+<!-- Team Hero Section -->
+<section class="w-full bg-surface-container-low border-b-2 border-on-background p-margin-mobile md:p-margin-desktop flex flex-col md:flex-row items-center md:items-end gap-md md:gap-lg relative overflow-hidden">
+<!-- Decorative Background Pattern -->
+<div class="absolute inset-0 opacity-5 pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, black 1px, transparent 0); background-size: 24px 24px;"></div>
+<!-- Team Crest -->
+<div class="z-10 w-32 h-32 md:w-48 md:h-48 bg-white border-2 border-on-background shadow-[8px_8px_0_0_#1c1b1b] p-4 flex items-center justify-center">
+<img class="w-full h-full object-contain" data-alt="A highly detailed and modern vector illustration of a generic European soccer team crest. The logo features a stylized crown on top of a circular badge, rendered in stark black and white with subtle electric green highlights. The aesthetic is high-contrast, sharp, and suitable for a professional sports analytics application operating in light mode." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtCzi0gjFsS5ak6i0ALt5KYnSgPUjywRegTHpC3s7c22-ZzH2XEITrhVxwGt0aWljET9hm7_6AOjxYj_Ysb0dmSeAkfVZKeQJBHA58X1g-r9AN6V8Pi44zGjHVax6K8ii-fGLuIPiKJnpks64tylEuKe_ZwMOmCc_yTgp5TZSA84_Cg39IjwZyhm7DuNfjnYz4CDIEw5JvYx2F5FrLjE4Ata1Gi4qZ2zQDTYt-cbh3x69vwaRk2JeT5FPSNgp8FT_F_sKqLZsRcho"/>
+</div>
+<!-- Team Identity -->
+<div class="z-10 flex flex-col items-center md:items-start text-center md:text-left">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-display-lg md:text-display-lg uppercase tracking-tight text-on-background m-0 leading-none">Real Madrid</h2>
+<span class="font-label-sm text-label-sm uppercase tracking-[0.2em] text-on-surface-variant mt-2 bg-surface px-3 py-1 border border-on-background">Spain</span>
+</div>
+<!-- Form Guide -->
+<div class="z-10 mt-6 md:mt-0 md:ml-auto flex flex-col items-center md:items-end gap-2">
+<span class="font-headline-md text-headline-md uppercase text-on-background">Form Guide</span>
+<div class="flex gap-2">
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-primary-container">W</span>
+</div>
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-primary-container">W</span>
+</div>
+<div class="w-10 h-10 flex items-center justify-center bg-surface-variant border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-surface">D</span>
+</div>
+<div class="w-10 h-10 flex items-center justify-center bg-error-container border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-error-container">L</span>
+</div>
+<div class="w-10 h-10 flex items-center justify-center bg-primary-container border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-primary-container">W</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Navigation Tabs -->
+<nav class="w-full flex overflow-x-auto hide-scrollbar border-b-2 border-on-background bg-surface z-10 sticky top-[56px] md:top-[64px]">
+<button class="flex-1 min-w-[120px] py-4 px-4 font-headline-md text-headline-md uppercase text-on-background bg-primary-container border-b-4 border-on-background shadow-[inset_0_-4px_0_0_#1c1b1b] transition-colors">Matches</button>
+<button class="flex-1 min-w-[120px] py-4 px-4 font-headline-md text-headline-md uppercase text-on-surface-variant border-b-4 border-transparent hover:bg-surface-container-high transition-colors">Squad</button>
+<button class="flex-1 min-w-[120px] py-4 px-4 font-headline-md text-headline-md uppercase text-on-surface-variant border-b-4 border-transparent hover:bg-surface-container-high transition-colors">Stats</button>
+<button class="flex-1 min-w-[120px] py-4 px-4 font-headline-md text-headline-md uppercase text-on-surface-variant border-b-4 border-transparent hover:bg-surface-container-high transition-colors">Info</button>
+</nav>
+<!-- Content Area: Matches -->
+<div class="w-full p-margin-mobile md:p-margin-desktop grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Match List Column -->
+<div class="md:col-span-8 lg:col-span-9 flex flex-col gap-6">
+<div class="flex items-center justify-between border-b-2 border-on-background pb-2">
+<h3 class="font-headline-md text-headline-md uppercase text-on-background">Latest Results</h3>
+</div>
+<!-- Match List Container -->
+<div class="flex flex-col border-2 border-on-background shadow-[4px_4px_0_0_#1c1b1b] bg-surface">
+<!-- Match Row (Win) -->
+<div class="flex flex-col sm:flex-row items-center border-b-[1px] border-on-background hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden">
+<!-- Accent Line -->
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-primary-container border-r border-on-background"></div>
+<div class="w-full sm:w-auto flex-1 flex items-center justify-between p-4 pl-6">
+<!-- Date & Home Team -->
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 w-[40%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Oct 28</span>
+<span class="font-body-lg text-body-lg uppercase font-bold truncate group-hover:text-primary transition-colors">Real Madrid</span>
+</div>
+<!-- Score -->
+<div class="flex items-center justify-center gap-3 w-[20%]">
+<div class="bg-primary-container px-3 py-1 border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-primary-container">3</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface-variant">-</span>
+<div class="bg-surface-variant px-3 py-1 border-2 border-on-background">
+<span class="font-headline-md text-headline-md text-on-surface">1</span>
+</div>
+</div>
+<!-- Away Team -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-end gap-1 sm:gap-4 w-[40%] text-right sm:text-left">
+<span class="font-body-lg text-body-lg uppercase truncate">Barcelona</span>
+</div>
+</div>
+</div>
+<!-- Match Row (Win) -->
+<div class="flex flex-col sm:flex-row items-center border-b-[1px] border-on-background bg-surface-container-low hover:bg-surface transition-colors group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-primary-container border-r border-on-background"></div>
+<div class="w-full sm:w-auto flex-1 flex items-center justify-between p-4 pl-6">
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 w-[40%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Oct 24</span>
+<span class="font-body-lg text-body-lg uppercase truncate">Braga</span>
+</div>
+<div class="flex items-center justify-center gap-3 w-[20%]">
+<div class="bg-surface-variant px-3 py-1 border-2 border-on-background">
+<span class="font-headline-md text-headline-md text-on-surface">1</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface-variant">-</span>
+<div class="bg-primary-container px-3 py-1 border-2 border-on-background shadow-[2px_2px_0_0_#1c1b1b]">
+<span class="font-headline-md text-headline-md text-on-primary-container">2</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-end gap-1 sm:gap-4 w-[40%] text-right sm:text-left">
+<span class="font-body-lg text-body-lg uppercase font-bold truncate group-hover:text-primary transition-colors">Real Madrid</span>
+</div>
+</div>
+</div>
+<!-- Match Row (Draw) -->
+<div class="flex flex-col sm:flex-row items-center border-b-[1px] border-on-background hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-2 bg-surface-variant border-r border-on-background"></div>
+<div class="w-full sm:w-auto flex-1 flex items-center justify-between p-4 pl-6">
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 w-[40%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Oct 21</span>
+<span class="font-body-lg text-body-lg uppercase truncate">Sevilla</span>
+</div>
+<div class="flex items-center justify-center gap-3 w-[20%]">
+<div class="bg-surface-variant px-3 py-1 border-2 border-on-background">
+<span class="font-headline-md text-headline-md text-on-surface">1</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface-variant">-</span>
+<div class="bg-surface-variant px-3 py-1 border-2 border-on-background">
+<span class="font-headline-md text-headline-md text-on-surface">1</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-end gap-1 sm:gap-4 w-[40%] text-right sm:text-left">
+<span class="font-body-lg text-body-lg uppercase font-bold truncate group-hover:text-primary transition-colors">Real Madrid</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Upcoming Matches Section -->
+<div class="flex items-center justify-between border-b-2 border-on-background pb-2 mt-8">
+<h3 class="font-headline-md text-headline-md uppercase text-on-background">Upcoming Fixtures</h3>
+</div>
+<div class="flex flex-col border-2 border-on-background shadow-[4px_4px_0_0_#1c1b1b] bg-surface">
+<!-- Upcoming Match Row -->
+<div class="flex flex-col sm:flex-row items-center border-b-[1px] border-on-background hover:bg-surface-container-low transition-colors group cursor-pointer">
+<div class="w-full sm:w-auto flex-1 flex items-center justify-between p-4 pl-6">
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 w-[40%]">
+<span class="font-label-sm text-label-sm text-primary uppercase">Nov 05</span>
+<span class="font-body-lg text-body-lg uppercase font-bold truncate group-hover:text-primary transition-colors">Real Madrid</span>
+</div>
+<div class="flex items-center justify-center w-[20%]">
+<div class="bg-surface-container-high px-3 py-1 border border-on-background">
+<span class="font-label-sm text-label-sm text-on-surface-variant">21:00</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-end gap-1 sm:gap-4 w-[40%] text-right sm:text-left">
+<span class="font-body-lg text-body-lg uppercase truncate">Rayo Vallecano</span>
+</div>
+</div>
+</div>
+<!-- Upcoming Match Row -->
+<div class="flex flex-col sm:flex-row items-center hover:bg-surface-container-low transition-colors group cursor-pointer bg-surface-container-low">
+<div class="w-full sm:w-auto flex-1 flex items-center justify-between p-4 pl-6">
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 w-[40%]">
+<span class="font-label-sm text-label-sm text-primary uppercase">Nov 08</span>
+<span class="font-body-lg text-body-lg uppercase font-bold truncate group-hover:text-primary transition-colors">Real Madrid</span>
+</div>
+<div class="flex items-center justify-center w-[20%]">
+<div class="bg-surface-container-high px-3 py-1 border border-on-background">
+<span class="font-label-sm text-label-sm text-on-surface-variant">21:00</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-end gap-1 sm:gap-4 w-[40%] text-right sm:text-left">
+<span class="font-body-lg text-body-lg uppercase truncate">Braga</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar / Stats Overview -->
+<aside class="hidden md:flex flex-col gap-6 md:col-span-4 lg:col-span-3">
+<div class="border-2 border-on-background bg-surface p-4 shadow-[4px_4px_0_0_#1c1b1b]">
+<h4 class="font-headline-md text-headline-md uppercase border-b-2 border-on-background pb-2 mb-4">Season Stats</h4>
+<ul class="flex flex-col gap-3">
+<li class="flex justify-between items-center border-b border-on-background pb-1">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant">Matches Played</span>
+<span class="font-headline-md text-headline-md">11</span>
+</li>
+<li class="flex justify-between items-center border-b border-on-background pb-1">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant">Wins</span>
+<span class="font-headline-md text-headline-md text-primary">9</span>
+</li>
+<li class="flex justify-between items-center border-b border-on-background pb-1">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant">Draws</span>
+<span class="font-headline-md text-headline-md">1</span>
+</li>
+<li class="flex justify-between items-center border-b border-on-background pb-1">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant">Losses</span>
+<span class="font-headline-md text-headline-md text-error">1</span>
+</li>
+<li class="flex justify-between items-center pt-2">
+<span class="font-label-sm text-label-sm uppercase text-on-surface-variant">Goals For</span>
+<span class="font-headline-md text-headline-md">23</span>
+</li>
+</ul>
+</div>
+<!-- Advertising / Promotional Block -->
+<div class="border-2 border-on-background bg-primary-container p-6 flex flex-col items-center justify-center text-center shadow-[4px_4px_0_0_#1c1b1b] min-h-[250px] relative overflow-hidden group cursor-pointer">
+<div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity"></div>
+<span class="material-symbols-outlined text-display-lg text-on-primary-container mb-2" style="font-variation-settings: 'FILL' 1;">confirmation_number</span>
+<h4 class="font-headline-md text-headline-md uppercase text-on-primary-container">Get Tickets</h4>
+<p class="font-body-md text-body-md text-on-primary-fixed-variant mt-2">Book seats for upcoming fixtures at Santiago Bernabéu.</p>
+</div>
+</aside>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-stretch bg-surface border-t-2 border-on-background flat no shadows">
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-sm text-label-sm uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">emoji_events</span>
+<span class="font-label-sm text-label-sm uppercase">Leagues</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">sensors</span>
+<span class="font-label-sm text-label-sm uppercase">Live</span>
+</a>
+<!-- Active Tab: Teams -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container py-1 px-4 border-b-4 border-on-background translate-y-[-2px] transition-transform shadow-[0_-2px_10px_rgba(0,255,102,0.2)]" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="font-label-sm text-label-sm uppercase">Teams</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-sm text-label-sm uppercase">Profile</span>
+</a>
+</nav>
+</body></html>

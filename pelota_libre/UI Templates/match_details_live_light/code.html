@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Match Details - Pelota Libre</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e27",
+                        "on-primary-container": "#007128",
+                        "tertiary-fixed": "#e2e2e2",
+                        "primary-fixed": "#6bff83",
+                        "background": "#fcf9f8",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "outline-variant": "#b9ccb5",
+                        "on-primary-fixed-variant": "#00531b",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface": "#fcf9f8",
+                        "on-error-container": "#93000a",
+                        "outline": "#6b7c68",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "tertiary": "#5d5f5f",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "surface-bright": "#fcf9f8",
+                        "primary-container": "#00ff66",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-container-high": "#eae7e7",
+                        "inverse-primary": "#00e55b",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary-container": "#dddddd",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#3b4b3a",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary-container": "#606161",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#f0eded",
+                        "on-secondary-container": "#646464",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "surface-variant": "#e5e2e1",
+                        "primary": "#006e27",
+                        "inverse-surface": "#313030",
+                        "secondary-container": "#e2e2e2",
+                        "primary-fixed-dim": "#00e55b",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#002107",
+                        "secondary": "#5e5e5e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "16px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "lg": "48px",
+                        "xs": "8px",
+                        "xl": "80px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Archivo Narrow"],
+                        "headline-lg": ["Anton"],
+                        "headline-md": ["Anton"],
+                        "headline-lg-mobile": ["Anton"],
+                        "label-sm": ["Archivo Narrow"],
+                        "body-md": ["Archivo Narrow"],
+                        "display-lg": ["Anton"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "headline-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "0.02em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #fcf9f8; color: #1c1b1b; }
+        .timeline-line::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background-color: #1c1b1b;
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+        .timeline-node { z-index: 10; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md pb-xl">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface border-b-2 border-on-background flex justify-between items-center px-margin-mobile md:px-margin-desktop py-2 z-50">
+<div class="flex items-center gap-sm cursor-pointer hover:bg-primary-container hover:text-on-primary-container transition-colors p-1" onclick="history.back()">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">sports_soccer</span>
+<span class="text-headline-md font-headline-md text-on-surface tracking-tighter italic uppercase">PELOTA LIBRE</span>
+</div>
+<div class="flex items-center gap-sm cursor-pointer hover:bg-primary-container hover:text-on-primary-container transition-colors active:scale-95 duration-75 p-1">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 0;">search</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full max-w-5xl mx-auto px-margin-mobile md:px-margin-desktop pt-md flex flex-col gap-md">
+<!-- Match Header / Scoreboard -->
+<section class="bg-surface-container-lowest border-2 border-on-background w-full relative overflow-hidden flex flex-col md:flex-row items-center justify-between p-md md:p-lg">
+<!-- Context / Status -->
+<div class="absolute top-0 left-0 w-full flex justify-between px-md py-xs border-b-2 border-on-background bg-surface-container-low font-label-sm text-label-sm uppercase">
+<span class="text-on-surface-variant flex items-center gap-xs"><span class="material-symbols-outlined text-[14px]">calendar_today</span> 12 OCT 2024 • PREMIER LEAGUE</span>
+<span class="bg-primary-container text-on-primary-container px-2 py-1 flex items-center gap-xs"><span class="w-2 h-2 rounded-full bg-on-primary-container animate-pulse"></span> FULL TIME</span>
+</div>
+<!-- Team A: Arsenal -->
+<div class="flex flex-col items-center gap-sm mt-lg md:mt-0 z-10 w-1/3">
+<div class="w-24 h-24 md:w-32 md:h-32 bg-surface-variant border-2 border-on-background rounded-full overflow-hidden flex items-center justify-center p-2">
+<img class="w-full h-full object-contain" data-alt="A highly detailed vector logo of Arsenal football club, featuring a bold cannon facing east, rendered in striking red, gold, and blue colors on a pristine white background. The style is sharp, modern athletic branding with thick outlines suitable for a high-contrast digital sports interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQrd5RUXh5nXNpc4paI9jLsxFa7dDCO263djdXLOF2WiWidqp-kvr8OMA9Z8l1kUCutpgfv82jPBIsB8zr8EEBMl2hEahuzqUbh2rlOoge5Cgaw0YDMQQxYtUeJ9upqM2LDB5yDOfXvfg1hCsUChudmGq-9DyqHjpzRkD1V2DGInbgMWqxaXCJakEkKnuLMJ1qn8NJsr6VeocSvAtX5RFnAiMOA9sm2zzdiF3bp9TXF-9zPM47ACqf2Op55HJnNcKdyT4pGzst5fk"/>
+</div>
+<h2 class="font-headline-md text-headline-md md:font-headline-lg md:text-headline-lg text-center uppercase tracking-tighter">Arsenal</h2>
+</div>
+<!-- Score -->
+<div class="flex flex-col items-center justify-center z-10 w-1/3 my-sm md:my-0">
+<div class="flex items-center gap-sm md:gap-md">
+<span class="font-display-lg text-display-lg text-on-background">2</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant">-</span>
+<span class="font-display-lg text-display-lg text-on-background">1</span>
+</div>
+<span class="font-label-sm text-label-sm uppercase text-primary border-b-2 border-primary mt-xs">Aggregate: 3 - 2</span>
+</div>
+<!-- Team B: Juventus -->
+<div class="flex flex-col items-center gap-sm z-10 w-1/3 mb-md md:mb-0">
+<div class="w-24 h-24 md:w-32 md:h-32 bg-surface-variant border-2 border-on-background rounded-full overflow-hidden flex items-center justify-center p-4">
+<img class="w-full h-full object-contain" data-alt="A highly detailed vector logo of Juventus football club, featuring the minimalist, modern 'J' crest rendered in stark black and white stripes. The design is sleek, aggressive, and highly legible, perfectly suited for a high-contrast athletic UI on a bright white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9mcr1h5QvVncdDghj1zppenERfog9px7rfSodvu9hntOKjgk3urKSzlJTRO4bcwC7qUE0y1LgU4UHoy-30qDzWskKhfJhgKUYqxsypRMnIxXJd4S5C_T3gqxNrMLTGNlaPnsMK-TPuF91cyecMYV5KH6MbXUf6X6RoNMKiT10nTKflQD9_y8gso_1IeOnvY1hJOuerlX5J_W2I7BR5y1p21fRFD373he6COnBT-Y9wNq76UXAhiZFQV51bqhrgk5NHK2tdN1nDNU"/>
+</div>
+<h2 class="font-headline-md text-headline-md md:font-headline-lg md:text-headline-lg text-center uppercase tracking-tighter">Juventus</h2>
+</div>
+</section>
+<!-- Match Metadata -->
+<section class="flex flex-wrap gap-sm justify-center md:justify-start">
+<div class="bg-surface-container-low border border-on-background px-3 py-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">stadium</span>
+<span class="font-label-sm text-label-sm uppercase">Emirates Stadium</span>
+</div>
+<div class="bg-surface-container-low border border-on-background px-3 py-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">sports</span>
+<span class="font-label-sm text-label-sm uppercase">Ref: Michael Oliver</span>
+</div>
+<div class="bg-surface-container-low border border-on-background px-3 py-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">group</span>
+<span class="font-label-sm text-label-sm uppercase">Att: 60,123</span>
+</div>
+</section>
+<!-- Navigation Tabs -->
+<nav class="flex w-full border-b-2 border-on-background overflow-x-auto no-scrollbar">
+<button class="px-md py-sm font-label-sm text-label-sm uppercase tracking-widest border-b-4 border-on-background text-on-background bg-surface-container-low hover:bg-surface-container-high transition-colors">Timeline</button>
+<button class="px-md py-sm font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-high transition-colors">Stats</button>
+<button class="px-md py-sm font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-high transition-colors">Preds</button>
+<button class="px-md py-sm font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant hover:bg-surface-container-high transition-colors">H2H</button>
+</nav>
+<!-- Timeline Canvas -->
+<section class="w-full bg-surface-container-lowest border-2 border-on-background p-md md:p-lg relative timeline-line flex flex-col gap-lg">
+<!-- Kickoff -->
+<div class="relative w-full flex justify-center timeline-node">
+<div class="bg-surface border-2 border-on-background px-3 py-1 font-label-sm text-label-sm uppercase">Kickoff</div>
+</div>
+<!-- Event: Home Goal -->
+<div class="relative w-full flex">
+<div class="w-1/2 pr-md md:pr-lg flex flex-col items-end text-right">
+<span class="font-headline-md text-headline-md uppercase">Saka</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Assist: Odegaard</span>
+</div>
+<div class="absolute left-1/2 top-0 -translate-x-1/2 w-8 h-8 bg-primary-container border-2 border-on-background rounded-full flex items-center justify-center timeline-node">
+<span class="material-symbols-outlined text-[16px] text-on-primary-container" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+</div>
+<div class="w-1/2 pl-md md:pl-lg flex items-center">
+<span class="font-label-sm text-label-sm bg-surface-container-low border border-on-background px-2 py-1">14'</span>
+</div>
+</div>
+<!-- Event: Away Yellow Card -->
+<div class="relative w-full flex">
+<div class="w-1/2 pr-md md:pr-lg flex items-center justify-end">
+<span class="font-label-sm text-label-sm bg-surface-container-low border border-on-background px-2 py-1">32'</span>
+</div>
+<div class="absolute left-1/2 top-0 -translate-x-1/2 w-8 h-8 bg-surface-container-highest border-2 border-on-background rounded-full flex items-center justify-center timeline-node">
+<div class="w-3 h-4 bg-yellow-400 border border-on-background transform rotate-12"></div>
+</div>
+<div class="w-1/2 pl-md md:pl-lg flex flex-col items-start text-left">
+<span class="font-headline-md text-headline-md uppercase">Rabiot</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Foul</span>
+</div>
+</div>
+<!-- Half Time -->
+<div class="relative w-full flex justify-center timeline-node my-sm">
+<div class="bg-surface border-2 border-on-background px-3 py-1 font-label-sm text-label-sm uppercase text-on-surface-variant">HT: 1 - 0</div>
+</div>
+<!-- Event: Away Goal -->
+<div class="relative w-full flex">
+<div class="w-1/2 pr-md md:pr-lg flex items-center justify-end">
+<span class="font-label-sm text-label-sm bg-surface-container-low border border-on-background px-2 py-1">55'</span>
+</div>
+<div class="absolute left-1/2 top-0 -translate-x-1/2 w-8 h-8 bg-surface-container-highest border-2 border-on-background rounded-full flex items-center justify-center timeline-node">
+<span class="material-symbols-outlined text-[16px] text-on-background" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+</div>
+<div class="w-1/2 pl-md md:pl-lg flex flex-col items-start text-left">
+<span class="font-headline-md text-headline-md uppercase">Vlahovic</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Penalty</span>
+</div>
+</div>
+<!-- Event: Home Sub -->
+<div class="relative w-full flex">
+<div class="w-1/2 pr-md md:pr-lg flex flex-col items-end text-right">
+<span class="font-body-lg text-body-lg flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[16px]">arrow_upward</span> Martinelli</span>
+<span class="font-body-lg text-body-lg flex items-center gap-1 text-error"><span class="material-symbols-outlined text-[16px]">arrow_downward</span> Trossard</span>
+</div>
+<div class="absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-surface border-2 border-on-background rounded-full flex items-center justify-center timeline-node">
+<span class="material-symbols-outlined text-[16px]">swap_horiz</span>
+</div>
+<div class="w-1/2 pl-md md:pl-lg flex items-center">
+<span class="font-label-sm text-label-sm bg-surface-container-low border border-on-background px-2 py-1">70'</span>
+</div>
+</div>
+<!-- Event: Home Goal -->
+<div class="relative w-full flex">
+<div class="w-1/2 pr-md md:pr-lg flex flex-col items-end text-right">
+<span class="font-headline-md text-headline-md uppercase">Martinelli</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Assist: Rice</span>
+</div>
+<div class="absolute left-1/2 top-0 -translate-x-1/2 w-8 h-8 bg-primary-container border-2 border-on-background rounded-full flex items-center justify-center timeline-node">
+<span class="material-symbols-outlined text-[16px] text-on-primary-container" style="font-variation-settings: 'FILL' 1;">sports_soccer</span>
+</div>
+<div class="w-1/2 pl-md md:pl-lg flex items-center">
+<span class="font-label-sm text-label-sm bg-surface-container-low border border-on-background px-2 py-1 flex items-center gap-1">89' <span class="material-symbols-outlined text-[12px] text-primary">local_fire_department</span></span>
+</div>
+</div>
+<!-- Full Time -->
+<div class="relative w-full flex justify-center timeline-node mt-sm">
+<div class="bg-on-background text-on-primary border-2 border-on-background px-4 py-2 font-headline-md text-headline-md uppercase tracking-wide">FT: 2 - 1</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-stretch bg-surface border-t-2 border-on-background">
+<!-- Inactive -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant py-2 px-4 hover:bg-surface-container-high w-1/5 cursor-pointer">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm uppercase mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant py-2 px-4 hover:bg-surface-container-high w-1/5 cursor-pointer">
+<span class="material-symbols-outlined">emoji_events</span>
+<span class="font-label-sm text-label-sm uppercase mt-1">Leagues</span>
+</div>
+<!-- Active -->
+<div class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container py-2 px-4 border-b-4 border-on-background w-1/5 cursor-pointer transform translate-y-[-2px] transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">sensors</span>
+<span class="font-label-sm text-label-sm uppercase mt-1 font-bold">Live</span>
+</div>
+<!-- Inactive -->
+<div class="flex flex-col items-center justify-center text-on-surface-variant py-2 px-4 hover:bg-surface-container-high w-1/5 cursor-pointer">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-label-sm text-label-sm uppercase mt-1">Teams</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant py-2 px-4 hover:bg-surface-container-high w-1/5 cursor-pointer">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm uppercase mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

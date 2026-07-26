@@ -12,8 +12,8 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dev": "pnpm --filter @football-api/worker dev",
-    "deploy": "pnpm --filter @football-api/worker deploy"
+    "dev": "pnpm --filter @football-api/worker run dev",
+    "deploy": "pnpm --filter @football-api/worker run deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

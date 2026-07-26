@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pelota Libre - Team Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;family=Inter:opsz,wght@14..32,100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        /* Base resets to enforce sharp edges */
+        * { border-radius: 0 !important; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        /* Hide scrollbar for clean aesthetic */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "on-tertiary-fixed": "#1a1c1c",
+                            "outline-variant": "#3b4b3a",
+                            "inverse-surface": "#e5e2e1",
+                            "surface-container": "#201f1f",
+                            "surface-container-low": "#1c1b1b",
+                            "surface-tint": "#00e55b",
+                            "on-tertiary": "#2f3131",
+                            "on-tertiary-container": "#606162",
+                            "on-primary-fixed": "#002107",
+                            "error": "#ffb4ab",
+                            "on-secondary-container": "#b7b4b4",
+                            "on-surface-variant": "#b9ccb5",
+                            "on-surface": "#e5e2e1",
+                            "primary-fixed-dim": "#00e55b",
+                            "tertiary-fixed": "#e2e2e2",
+                            "outline": "#849581",
+                            "on-primary-fixed-variant": "#00531b",
+                            "on-primary-container": "#007128",
+                            "error-container": "#93000a",
+                            "on-secondary-fixed-variant": "#474646",
+                            "surface-bright": "#393939",
+                            "surface-dim": "#131313",
+                            "surface-container-high": "#2a2a2a",
+                            "primary": "#edffe8",
+                            "on-secondary-fixed": "#1c1b1b",
+                            "background": "#131313",
+                            "on-tertiary-fixed-variant": "#454747",
+                            "tertiary-container": "#dddddd",
+                            "surface-container-lowest": "#0e0e0e",
+                            "inverse-primary": "#006e27",
+                            "secondary-container": "#474646",
+                            "tertiary-fixed-dim": "#c6c6c7",
+                            "on-error-container": "#ffdad6",
+                            "surface": "#131313",
+                            "primary-container": "#00ff66",
+                            "secondary": "#c9c6c5",
+                            "primary-fixed": "#6bff83",
+                            "tertiary": "#f9fafa",
+                            "secondary-fixed": "#e5e2e1",
+                            "on-secondary": "#313030",
+                            "on-error": "#690005",
+                            "on-primary": "#003911",
+                            "on-background": "#e5e2e1",
+                            "secondary-fixed-dim": "#c9c6c5",
+                            "inverse-on-surface": "#313030",
+                            "surface-variant": "#353534",
+                            "surface-container-highest": "#353534"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0px",
+                            "lg": "0px",
+                            "xl": "0px",
+                            "full": "0px"
+                    },
+                    "spacing": {
+                            "unit": "4px",
+                            "gutter": "12px",
+                            "sm": "8px",
+                            "xl": "32px",
+                            "xs": "4px",
+                            "md": "16px",
+                            "lg": "24px",
+                            "container-margin": "16px"
+                    },
+                    "fontFamily": {
+                            "match-score": ["Archivo Narrow", "sans-serif"],
+                            "data-tabular": ["JetBrains Mono", "monospace"],
+                            "label-caps": ["JetBrains Mono", "monospace"],
+                            "headline-lg": ["Archivo Narrow", "sans-serif"],
+                            "body-md": ["Inter", "sans-serif"],
+                            "headline-lg-mobile": ["Archivo Narrow", "sans-serif"],
+                            "display-lg": ["Archivo Narrow", "sans-serif"]
+                    },
+                    "fontSize": {
+                            "match-score": ["28px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "800" }],
+                            "data-tabular": ["14px", { "lineHeight": "1", "fontWeight": "400" }],
+                            "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "500" }],
+                            "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                            "body-md": ["16px", { "lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400" }],
+                            "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                            "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background h-screen flex flex-col overflow-hidden uppercase font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar from JSON -->
+<header class="bg-background text-primary flex justify-between items-center w-full px-container-margin h-14 docked full-width top-0 border-b border-outline-variant flat no shadows">
+<button class="text-primary hover:bg-surface-container transition-colors duration-100 flex items-center justify-center p-sm">
+<span class="material-symbols-outlined">sports_soccer</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary-container tracking-tighter uppercase">PELOTA LIBRE</h1>
+<button class="text-primary hover:bg-surface-container transition-colors duration-100 flex items-center justify-center p-sm">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Main Scrollable Content -->
+<main class="flex-1 overflow-y-auto pb-20">
+<!-- Team Header -->
+<section class="w-full border-b border-outline-variant relative">
+<div class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-luminosity" data-alt="A moody, high-contrast atmospheric stadium background in deep blacks and dark grays, illuminated by a single sharp green laser flare cutting through fog, embodying a technical, high-performance sports aesthetic." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuADE36kUGZRIVbFkgx0dHB9MklPiZYc8EBzAgVQeT1SF2JpHYXh-ESENoverEbFyag8cWpcv2l1LIqX1AM_cRQyAGzmwvxdQyZv0hU2TQuYEGcfD8LJxAKKDdqsJtKTJ0LEU7JQbSCcjd9h1tTiaxsg_cvaiXrCe90P1wdPJ0SWpnVajd47BZJYWvs0Enr3J3VegnBL67kXprBBJZYaBjmsO0pW8ldfXXD0HOthr5i8azV1EoPYj4AX4VeACUcOR_VDlq9g2iHrg8E')"></div>
+<div class="relative z-10 p-container-margin flex items-end gap-md pt-xl">
+<div class="w-24 h-24 border border-outline-variant bg-surface-container flex-shrink-0 relative overflow-hidden">
+<img class="w-full h-full object-cover p-xs" data-alt="A meticulously crafted, flat geometric logo of a prestigious football club, rendered in stark white and electric green on a pitch black background, emphasizing sharp angles and minimal details, no soft curves." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnibF0VE0NrrIQN5aOsk7dhk-IHJLH7-BrwV28adxVYSv2n0Zq3BIGrafW94-ntXrZtqdYwB4dt8Ofu-ayxH4uqTPd6nAKbWrlipBBw--_VMBDKvglrr5acFETSQKp2Wd2XMlgjQHL1Tz6GwANLSUUNB4f75dZ9ahYJtjd4Srtx2zT9bwe2u3lfBvDqHvk9XvuN1XjAVhw2WWgmYGp1i4kNDK1f2TKHnBL6JCQoPjYaOSKChA4_WIPSi7Odurf8E2KcWUFflvwOFA"/>
+</div>
+<div class="flex-1 flex flex-col justify-end pb-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">location_on</span> SPAIN
+                    </span>
+<h2 class="font-display-lg text-display-lg text-on-background leading-none mt-xs uppercase">REAL MADRID</h2>
+</div>
+</div>
+</section>
+<!-- Tabs -->
+<nav class="flex w-full border-b border-outline-variant bg-surface-dim sticky top-0 z-20">
+<button class="flex-1 py-gutter border-t-2 border-primary text-primary font-label-caps text-label-caps hover:bg-surface-container transition-colors duration-100">MATCHES</button>
+<button class="flex-1 py-gutter border-t-2 border-transparent text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container hover:text-primary transition-colors duration-100">SQUAD</button>
+<button class="flex-1 py-gutter border-t-2 border-transparent text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container hover:text-primary transition-colors duration-100">STATS</button>
+<button class="flex-1 py-gutter border-t-2 border-transparent text-on-surface-variant font-label-caps text-label-caps hover:bg-surface-container hover:text-primary transition-colors duration-100">INFO</button>
+</nav>
+<!-- Form Guide (Last 5) -->
+<section class="p-container-margin border-b border-outline-variant bg-surface-container-lowest">
+<div class="flex justify-between items-center mb-sm">
+<h3 class="font-label-caps text-label-caps text-on-surface-variant">FORM GUIDE (LAST 5)</h3>
+<span class="font-data-tabular text-data-tabular text-on-surface">12 PTS</span>
+</div>
+<div class="flex gap-unit">
+<div class="flex-1 h-10 border border-outline-variant bg-primary-container text-on-primary-container flex items-center justify-center font-label-caps text-label-caps">W</div>
+<div class="flex-1 h-10 border border-outline-variant bg-primary-container text-on-primary-container flex items-center justify-center font-label-caps text-label-caps">W</div>
+<div class="flex-1 h-10 border border-outline-variant bg-surface-variant text-on-surface flex items-center justify-center font-label-caps text-label-caps">D</div>
+<div class="flex-1 h-10 border border-outline-variant bg-error text-on-error flex items-center justify-center font-label-caps text-label-caps">L</div>
+<div class="flex-1 h-10 border border-outline-variant bg-primary-container text-on-primary-container flex items-center justify-center font-label-caps text-label-caps relative">
+                    W
+                    <!-- Live indicator for most recent if needed, but keeping it standard here -->
+</div>
+</div>
+</section>
+<!-- Match List -->
+<section class="p-container-margin space-y-sm">
+<h3 class="font-label-caps text-label-caps text-outline pb-xs border-b border-outline-variant mb-md">RECENT &amp; UPCOMING</h3>
+<!-- Match Card 1 (Finished) -->
+<article class="bg-surface-container border border-outline-variant flex flex-col p-md hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm mb-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant">LA LIGA • MATCHDAY 28</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">FT</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-xs flex-1">
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">RMA</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface-variant">FCB</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs items-end font-match-score text-match-score text-primary-container">
+<span>3</span>
+<span class="text-on-surface-variant">1</span>
+</div>
+</div>
+</article>
+<!-- Match Card 2 (Upcoming) -->
+<article class="bg-surface-container border border-outline-variant flex flex-col p-md hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm mb-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant">CHAMPIONS LEAGUE • QF L1</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">TOMORROW 21:00</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-xs flex-1">
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">RMA</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">MCI</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs items-end font-match-score text-match-score text-on-surface-variant opacity-50">
+<span>-</span>
+<span>-</span>
+</div>
+</div>
+</article>
+<!-- Match Card 3 (Upcoming) -->
+<article class="bg-surface-container border border-outline-variant flex flex-col p-md hover:bg-surface-container-high transition-colors">
+<div class="flex justify-between items-center border-b border-outline-variant pb-sm mb-sm">
+<span class="font-label-caps text-label-caps text-on-surface-variant">LA LIGA • MATCHDAY 29</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">SAT 18:30</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex flex-col gap-xs flex-1">
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">OSA</span>
+</div>
+<div class="flex items-center gap-sm">
+<div class="w-6 h-6 bg-surface-variant border border-outline-variant"></div>
+<span class="font-headline-lg-mobile text-headline-lg-mobile text-on-background">RMA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs items-end font-match-score text-match-score text-on-surface-variant opacity-50">
+<span>-</span>
+<span>-</span>
+</div>
+</div>
+</article>
+</section>
+</main>
+<!-- BottomNavBar from JSON, active on 'Teams' (index 3) -->
+<nav class="bg-surface-dim flex justify-around items-center h-16 fixed bottom-0 w-full z-50 docked full-width border-t-2 border-outline-variant flat no shadows font-label-caps text-label-caps text-on-surface-variant">
+<!-- Home -->
+<a class="flex flex-col items-center justify-center pt-1 flex-1 hover:text-primary active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-xs text-[20px]">home</span>
+<span class="text-[10px] uppercase">Home</span>
+</a>
+<!-- Leagues -->
+<a class="flex flex-col items-center justify-center pt-1 flex-1 hover:text-primary active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-xs text-[20px]">emoji_events</span>
+<span class="text-[10px] uppercase">Leagues</span>
+</a>
+<!-- Live -->
+<a class="flex flex-col items-center justify-center pt-1 flex-1 hover:text-primary active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-xs text-[20px]">live_tv</span>
+<span class="text-[10px] uppercase">Live</span>
+</a>
+<!-- Teams (ACTIVE) -->
+<a class="flex flex-col items-center justify-center pt-1 flex-1 text-primary-container border-t-2 border-primary-container active:scale-95 transition-transform -mt-[2px]" href="#">
+<span class="material-symbols-outlined mb-xs text-[20px]" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="text-[10px] uppercase">Teams</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center pt-1 flex-1 hover:text-primary active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined mb-xs text-[20px]">person</span>
+<span class="text-[10px] uppercase">Profile</span>
+</a>
+</nav>
+</body></html>

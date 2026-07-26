@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pelota Libre - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error-container": "#ffdad6",
+                        "surface-tint": "#006e27",
+                        "on-primary-container": "#007128",
+                        "tertiary-fixed": "#e2e2e2",
+                        "primary-fixed": "#6bff83",
+                        "background": "#fcf9f8",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "on-secondary-fixed-variant": "#474747",
+                        "outline-variant": "#b9ccb5",
+                        "on-primary-fixed-variant": "#00531b",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "surface": "#fcf9f8",
+                        "on-error-container": "#93000a",
+                        "outline": "#6b7c68",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "tertiary": "#5d5f5f",
+                        "on-secondary-fixed": "#1b1b1b",
+                        "surface-bright": "#fcf9f8",
+                        "primary-container": "#00ff66",
+                        "surface-container-low": "#f6f3f2",
+                        "surface-container-high": "#eae7e7",
+                        "inverse-primary": "#00e55b",
+                        "secondary-fixed": "#e2e2e2",
+                        "tertiary-container": "#dddddd",
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#3b4b3a",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-surface": "#1c1b1b",
+                        "on-tertiary-container": "#606161",
+                        "surface-container-highest": "#e5e2e1",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-dim": "#dcd9d9",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#f0eded",
+                        "on-secondary-container": "#646464",
+                        "secondary-fixed-dim": "#c6c6c6",
+                        "surface-variant": "#e5e2e1",
+                        "primary": "#006e27",
+                        "inverse-surface": "#313030",
+                        "secondary-container": "#e2e2e2",
+                        "primary-fixed-dim": "#00e55b",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#002107",
+                        "secondary": "#5e5e5e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "16px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "lg": "48px",
+                        "xs": "8px",
+                        "xl": "80px",
+                        "margin-desktop": "32px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Archivo Narrow"],
+                        "headline-lg": ["Anton"],
+                        "headline-md": ["Anton"],
+                        "headline-lg-mobile": ["Anton"],
+                        "label-sm": ["Archivo Narrow"],
+                        "body-md": ["Archivo Narrow"],
+                        "display-lg": ["Anton"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "1.5", "fontWeight": "500" }],
+                        "headline-lg": ["48px", { "lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "display-lg": ["72px", { "lineHeight": "1.1", "letterSpacing": "0.02em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex flex-col overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky bg-surface dark:bg-surface-container-high border-b-2 border-on-background dark:border-on-surface z-50">
+<div class="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-2 w-full">
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors p-2 rounded-none">
+<span class="material-symbols-outlined font-headline-md text-headline-md">sports_soccer</span>
+</button>
+<h1 class="text-headline-md font-headline-md text-on-surface dark:text-on-surface tracking-tighter italic">PELOTA LIBRE</h1>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors p-2 rounded-none">
+<span class="material-symbols-outlined font-headline-md text-headline-md">search</span>
+</button>
+</div>
+<!-- Web Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex justify-center gap-8 py-2 bg-surface-container-lowest border-t-2 border-on-background">
+<a class="text-primary dark:text-primary-container font-bold text-label-sm font-label-sm uppercase hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors px-4 py-2 flex items-center gap-2 border-b-4 border-primary" href="#">
+<span class="material-symbols-outlined">home</span> Home
+            </a>
+<a class="text-on-surface-variant dark:text-surface-variant text-label-sm font-label-sm uppercase hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors px-4 py-2 flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">emoji_events</span> Leagues
+            </a>
+<a class="text-on-surface-variant dark:text-surface-variant text-label-sm font-label-sm uppercase hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors px-4 py-2 flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">sensors</span> Live
+            </a>
+<a class="text-on-surface-variant dark:text-surface-variant text-label-sm font-label-sm uppercase hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors px-4 py-2 flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">groups</span> Teams
+            </a>
+<a class="text-on-surface-variant dark:text-surface-variant text-label-sm font-label-sm uppercase hover:bg-primary-container dark:hover:bg-primary-fixed-dim hover:text-on-primary-container transition-colors px-4 py-2 flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">person</span> Profile
+            </a>
+</nav>
+</header>
+<!-- Main Canvas -->
+<main class="flex-grow pb-xl md:pb-lg">
+<div class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop py-md">
+<!-- Date Tabs -->
+<div class="flex justify-between md:justify-start gap-4 mb-md border-b-2 border-on-surface pb-2 overflow-x-auto snap-x">
+<button class="snap-start shrink-0 font-label-sm text-label-sm uppercase text-on-surface-variant px-4 py-2 hover:bg-surface-variant transition-colors">Yesterday</button>
+<button class="snap-start shrink-0 font-label-sm text-label-sm uppercase bg-on-background text-on-primary px-4 py-2 border-2 border-on-background">Today</button>
+<button class="snap-start shrink-0 font-label-sm text-label-sm uppercase text-on-surface-variant px-4 py-2 hover:bg-surface-variant transition-colors">Tomorrow</button>
+</div>
+<!-- Sub Tabs -->
+<div class="flex gap-4 mb-lg">
+<button class="bg-surface-variant text-on-surface font-label-sm text-label-sm uppercase px-4 py-2 border-2 border-transparent hover:border-on-background transition-colors active:scale-95">Upcoming / Finished</button>
+<button class="bg-primary-container text-on-primary-container font-label-sm text-label-sm uppercase px-4 py-2 border-2 border-on-background flex items-center gap-2 active:scale-95">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> LIVE
+                </button>
+</div>
+<!-- Content Area - Leagues -->
+<!-- Premier League Section -->
+<section class="mb-xl">
+<div class="bg-on-background text-on-primary px-4 py-2 mb-sm flex items-center gap-4">
+<img alt="League Logo" class="w-8 h-8 object-contain bg-on-primary rounded-full p-1" data-alt="A small, detailed 3D rendered crest of a lion wearing a crown, metallic silver and blue, isolated on a stark white background, high contrast lighting, modern sports branding aesthetic, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnyucyooWco9oZPm2nvW-kgipYcDubLN3qLSe_kmJSoCcpVbOqkcCiFJQP8FpOZbCO1IdKWmYYQyq4QmdUWrfLxYkXhJq67ihtu_Zp-xzpVkU0DR9ICwq0uOq2KMkvnEt4L7c9ajMzs4WYueh5sVtRRBm-VvQlXehP2xLs7l6y4XIM-Q3dxMfR-Xcq7VDn6iY4cEei4vxKxa6YrI3SXlqE6kkTa1cZNMYTpQNkao0pDCN4kjuL6A38icsHFmjE63x3rm7jvQ3xGn0"/>
+<h2 class="font-headline-md text-headline-md uppercase tracking-wide">Premier League</h2>
+</div>
+<div class="flex flex-col gap-base">
+<!-- Match 1 (Live) -->
+<div class="bg-surface border-2 border-on-background p-4 grid grid-cols-[1fr_auto_1fr] items-center hover:bg-surface-container-low transition-colors group cursor-pointer relative overflow-hidden">
+<!-- Left Team -->
+<div class="flex items-center gap-4 justify-end">
+<span class="font-body-lg text-body-lg font-bold">Arsenal</span>
+<img alt="Arsenal" class="w-10 h-10 object-contain" data-alt="A small, detailed 3D rendered crest of a cannon, metallic gold and red, isolated on a stark white background, high contrast lighting, modern sports branding aesthetic, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAL5F1WBN66uF5kVZL7gYFjOl2hIn_cDmb6NkyJQloJiQkfiYAxvZt5SaXzXUv5S8iM85TzZJf2wB95sffvqOtHTMNRk8GPuCjcgBryTcCM_UGmzg89yDJbT_wRLe2RmwP1BwT3qxeYJA-oB5mdSqVOSgRuiQzLHzL22Jv92bY97bdxtHsXdIGLpWhSjOZ_5r-pS7S4OYi5ACAys-OmmvMWDhfRjpB-BSnKlOoTVk12CWoyFDa6BZyqhIp8gBYzOqlkWLV1gpU6_-s"/>
+</div>
+<!-- Score / Status -->
+<div class="px-8 flex flex-col items-center justify-center text-center">
+<div class="bg-primary-container text-on-primary-container px-2 py-1 mb-1 font-label-sm text-label-sm uppercase border border-on-background shadow-[2px_2px_0px_rgba(28,27,27,1)]">75'</div>
+<div class="font-headline-lg text-headline-lg-mobile md:text-headline-lg flex gap-2">
+<span>2</span>
+<span class="text-surface-variant">-</span>
+<span>1</span>
+</div>
+</div>
+<!-- Right Team -->
+<div class="flex items-center gap-4 justify-start">
+<img alt="Man City" class="w-10 h-10 object-contain" data-alt="A small, detailed 3D rendered crest of a ship and a red rose, metallic light blue and white, isolated on a stark white background, high contrast lighting, modern sports branding aesthetic, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8Qggk-kQciU4hSrL_kH98RGxgOvGMVLgvba5PPRupI0843j9_Nb2bIMWc7BpXr7XidQFMWzL6kwrQmuqdKeMPNAk5rLwyyiMns4xqxVwbNDWAXmYcwwUBBiLA88fcd2z92wFYktBVVz57fw0LCCou44wSMPInNTbJLrPbDTLg7CGCf3ffsNfWVjtIxYCwy638X0RnpYwRuoSLrk7UfQ6gFvodwL7xl1JbXh7xn9eYwJe8MKdLBnmA0uxN8-Sf_dJc5_teR4rfjqE"/>
+<span class="font-body-lg text-body-lg font-bold">Man City</span>
+</div>
+<!-- Hover Action -->
+<div class="absolute inset-y-0 right-0 w-16 bg-primary border-l-2 border-on-background flex items-center justify-center translate-x-full group-hover:translate-x-0 transition-transform">
+<span class="material-symbols-outlined text-on-primary font-headline-md">play_arrow</span>
+</div>
+</div>
+<!-- Match 2 (Upcoming) -->
+<div class="bg-surface border border-on-surface-variant p-4 grid grid-cols-[1fr_auto_1fr] items-center hover:bg-surface-container-low transition-colors">
+<div class="flex items-center gap-4 justify-end">
+<span class="font-body-lg text-body-lg font-bold">Liverpool</span>
+<div class="w-10 h-10 bg-surface-variant rounded-full flex items-center justify-center text-on-surface-variant font-label-sm">LFC</div>
+</div>
+<div class="px-8 flex flex-col items-center justify-center text-center">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">15:00</div>
+<div class="font-headline-md text-headline-md text-surface-variant">VS</div>
+</div>
+<div class="flex items-center gap-4 justify-start">
+<div class="w-10 h-10 bg-surface-variant rounded-full flex items-center justify-center text-on-surface-variant font-label-sm">CFC</div>
+<span class="font-body-lg text-body-lg font-bold">Chelsea</span>
+</div>
+</div>
+</div>
+</section>
+<!-- La Liga Section -->
+<section class="mb-xl">
+<div class="bg-on-background text-on-primary px-4 py-2 mb-sm flex items-center gap-4">
+<div class="w-8 h-8 bg-on-primary rounded-full flex items-center justify-center text-on-background font-headline-md text-sm">LFP</div>
+<h2 class="font-headline-md text-headline-md uppercase tracking-wide">La Liga</h2>
+</div>
+<div class="flex flex-col gap-base">
+<!-- Match 3 (Finished) -->
+<div class="bg-surface-container-low border border-surface-variant p-4 grid grid-cols-[1fr_auto_1fr] items-center opacity-75">
+<div class="flex items-center gap-4 justify-end">
+<span class="font-body-lg text-body-lg font-bold">Real Madrid</span>
+<div class="w-10 h-10 bg-surface-variant rounded-full flex items-center justify-center text-on-surface-variant font-label-sm">RMA</div>
+</div>
+<div class="px-8 flex flex-col items-center justify-center text-center">
+<div class="bg-surface-variant text-on-surface-variant px-2 py-1 mb-1 font-label-sm text-label-sm uppercase">FT</div>
+<div class="font-headline-md text-headline-md flex gap-2">
+<span>3</span>
+<span>-</span>
+<span>0</span>
+</div>
+</div>
+<div class="flex items-center gap-4 justify-start">
+<div class="w-10 h-10 bg-surface-variant rounded-full flex items-center justify-center text-on-surface-variant font-label-sm">ATM</div>
+<span class="font-body-lg text-body-lg font-bold">Atletico</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-stretch bg-surface dark:bg-surface-dim border-t-2 border-on-background dark:border-on-surface md:hidden">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container py-1 px-4 border-b-4 border-on-background hover:bg-surface-container-high dark:hover:bg-surface-container-highest flex-1" href="#">
+<span class="material-symbols-outlined font-headline-md text-primary">home</span>
+<span class="font-label-sm text-label-sm uppercase text-primary dark:text-primary-fixed-dim">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high dark:hover:bg-surface-container-highest flex-1" href="#">
+<span class="material-symbols-outlined font-headline-md">emoji_events</span>
+<span class="font-label-sm text-label-sm uppercase">Leagues</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high dark:hover:bg-surface-container-highest flex-1" href="#">
+<span class="material-symbols-outlined font-headline-md">sensors</span>
+<span class="font-label-sm text-label-sm uppercase">Live</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high dark:hover:bg-surface-container-highest flex-1" href="#">
+<span class="material-symbols-outlined font-headline-md">groups</span>
+<span class="font-label-sm text-label-sm uppercase">Teams</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant py-1 px-4 hover:bg-surface-container-high dark:hover:bg-surface-container-highest flex-1" href="#">
+<span class="material-symbols-outlined font-headline-md">person</span>
+<span class="font-label-sm text-label-sm uppercase">Profile</span>
+</a>
+</nav>
+</body></html>

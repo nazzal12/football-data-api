@@ -13,7 +13,7 @@ Clients never talk to upstream providers.
 | **KV** (`META`) | Lifecycle metadata, indexes, refresh leases |
 | **Cache API** | Serialized public HTTP responses |
 
-Refresh is **request-driven** only. No cron. Provider adapters are replaceable.
+Refresh is **request-driven** via the lifecycle engine (leases, SWR, quotas). Cron (every 5h) only warms teams/tournaments/date lists — **never live**. Live objects use a 5s TTL and refresh only on user request after expiry. Pre-match soft-expires at kickoff; finished matches freeze forever. Fixture date lists use Latin America timezone (`America/Argentina/Buenos_Aires`); clients display kickoffs in the device timezone.
 
 ## Workspace layout
 
@@ -66,15 +66,16 @@ idmap:api-football:internal:<internalUuid> = <externalId>
 
 ## Public API
 
-- `GET /health` — liveness
-- `GET /v1/matches/:id` — match by internal UUID
-- `GET /v1/matches/by-external/:externalId` — bootstrap from upstream fixture id
-- `GET /v1/teams/:id` — team by internal UUID
-- `GET /v1/teams/by-external/:externalId` — bootstrap from upstream team id
-- `GET /v1/projections/matches/:key` — match list projection
-- `PUT /v1/id-maps` — bind `{ externalType, externalId, internalId }`
+**Base URL:** `https://football-api.nazzalkausar12.workers.dev`
 
-OpenAPI: `apps/worker/openapi.json`. Progress: [docs/PROGRESS.md](docs/PROGRESS.md).
+| Doc | Use |
+|-----|-----|
+| **[docs/API.md](docs/API.md)** | Human + Cursor integration guide (recipes, types, errors) |
+| **[docs/openapi.yaml](docs/openapi.yaml)** | Full OpenAPI 3.1 contract for codegen / clients |
+
+Reads are public (no API key). Bootstrap with `/v1/.../by-external/...`, then persist returned UUIDs.
+
+Progress notes: [docs/PROGRESS.md](docs/PROGRESS.md).
 
 ## Security
 

@@ -15,10 +15,11 @@ export type UpstreamFixtureItem = {
     name: string;
     country: string;
     season: number;
+    logo?: string | null;
   };
   teams: {
-    home: { id: number; name: string };
-    away: { id: number; name: string };
+    home: { id: number; name: string; logo?: string | null };
+    away: { id: number; name: string; logo?: string | null };
   };
   goals: { home: number | null; away: number | null };
   score?: {
@@ -26,9 +27,9 @@ export type UpstreamFixtureItem = {
   };
   events?: Array<{
     time: { elapsed: number | null; extra: number | null };
-    team: { id: number };
-    player: { id: number | null };
-    assist: { id: number | null };
+    team: { id: number; name?: string | null };
+    player: { id: number | null; name?: string | null };
+    assist: { id: number | null; name?: string | null };
     type: string;
     detail: string;
   }>;

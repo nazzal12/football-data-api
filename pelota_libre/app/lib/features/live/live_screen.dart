@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +14,12 @@ import '../../widgets/offline_retry.dart';
 
 final liveFeedProvider =
     FutureProvider.autoDispose<List<MatchCardVm>>((ref) async {
-  return ref.read(footballRepositoryProvider).liveFeed();
+  // Live list: always hit network; refresh every 5s while the tab is open.
+  final timer = Timer(const Duration(seconds: 5), () {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(timer.cancel);
+  return ref.read(footballRepositoryProvider).liveFeed(forceRefresh: true);
 });
 
 class LiveScreen extends ConsumerWidget {

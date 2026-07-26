@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PELOTA LIBRE - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&amp;family=Inter:wght@100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#1a1c1c",
+                      "outline-variant": "#3b4b3a",
+                      "inverse-surface": "#e5e2e1",
+                      "surface-container": "#201f1f",
+                      "surface-container-low": "#1c1b1b",
+                      "surface-tint": "#00e55b",
+                      "on-tertiary": "#2f3131",
+                      "on-tertiary-container": "#606162",
+                      "on-primary-fixed": "#002107",
+                      "error": "#ffb4ab",
+                      "on-secondary-container": "#b7b4b4",
+                      "on-surface-variant": "#b9ccb5",
+                      "on-surface": "#e5e2e1",
+                      "primary-fixed-dim": "#00e55b",
+                      "tertiary-fixed": "#e2e2e2",
+                      "outline": "#849581",
+                      "on-primary-fixed-variant": "#00531b",
+                      "on-primary-container": "#007128",
+                      "error-container": "#93000a",
+                      "on-secondary-fixed-variant": "#474646",
+                      "surface-bright": "#393939",
+                      "surface-dim": "#131313",
+                      "surface-container-high": "#2a2a2a",
+                      "primary": "#edffe8",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "background": "#131313",
+                      "on-tertiary-fixed-variant": "#454747",
+                      "tertiary-container": "#dddddd",
+                      "surface-container-lowest": "#0e0e0e",
+                      "inverse-primary": "#006e27",
+                      "secondary-container": "#474646",
+                      "tertiary-fixed-dim": "#c6c6c7",
+                      "on-error-container": "#ffdad6",
+                      "surface": "#131313",
+                      "primary-container": "#00ff66",
+                      "secondary": "#c9c6c5",
+                      "primary-fixed": "#6bff83",
+                      "tertiary": "#f9fafa",
+                      "secondary-fixed": "#e5e2e1",
+                      "on-secondary": "#313030",
+                      "on-error": "#690005",
+                      "on-primary": "#003911",
+                      "on-background": "#e5e2e1",
+                      "secondary-fixed-dim": "#c9c6c5",
+                      "inverse-on-surface": "#313030",
+                      "surface-variant": "#353534",
+                      "surface-container-highest": "#353534"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "4px",
+                      "gutter": "12px",
+                      "sm": "8px",
+                      "xl": "32px",
+                      "xs": "4px",
+                      "md": "16px",
+                      "lg": "24px",
+                      "container-margin": "16px"
+              },
+              "fontFamily": {
+                      "match-score": [
+                              "Archivo Narrow"
+                      ],
+                      "data-tabular": [
+                              "JetBrains Mono"
+                      ],
+                      "label-caps": [
+                              "JetBrains Mono"
+                      ],
+                      "headline-lg": [
+                              "Archivo Narrow"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Archivo Narrow"
+                      ],
+                      "display-lg": [
+                              "Archivo Narrow"
+                      ]
+              },
+              "fontSize": {
+                      "match-score": [
+                              "28px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "800"
+                              }
+                      ],
+                      "data-tabular": [
+                              "14px",
+                              {
+                                      "lineHeight": "1",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "800"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom scrollbar for horizontal lists */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-16 flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-background docked full-width top-0 border-b border-outline-variant flat no shadows transition-colors duration-100 flex justify-between items-center w-full px-container-margin h-14 sticky z-40">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary dark:text-primary fill" data-icon="sports_soccer" data-weight="fill">sports_soccer</span>
+</div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary-container tracking-tighter md:font-headline-lg md:text-headline-lg uppercase">PELOTA LIBRE</h1>
+<div class="flex items-center gap-xs">
+<button class="hover:bg-surface-container p-1 text-on-surface-variant transition-colors duration-100 rounded-none">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-7xl mx-auto flex flex-col gap-unit">
+<!-- Date Tabs & Sub-tabs Header Block -->
+<div class="sticky top-14 z-30 bg-background/95 backdrop-blur-sm border-b border-surface-container-high pb-xs pt-sm">
+<!-- Date Tabs -->
+<div class="flex justify-between items-center px-container-margin mb-unit overflow-x-auto hide-scrollbar gap-sm">
+<button class="flex-1 py-sm font-label-caps text-label-caps text-on-surface-variant border-b-2 border-transparent uppercase transition-colors hover:text-on-background whitespace-nowrap px-md">Yesterday</button>
+<button class="flex-1 py-sm font-label-caps text-label-caps text-primary-container border-b-2 border-primary-container uppercase transition-colors whitespace-nowrap px-md">TODAY</button>
+<button class="flex-1 py-sm font-label-caps text-label-caps text-on-surface-variant border-b-2 border-transparent uppercase transition-colors hover:text-on-background whitespace-nowrap px-md">Tomorrow</button>
+</div>
+<!-- Sub-tabs -->
+<div class="flex gap-xs px-container-margin">
+<button class="flex-1 bg-surface-container text-on-background font-label-caps text-label-caps py-gutter border border-[#222222] uppercase transition-colors hover:bg-surface-container-high rounded-none">Upcoming / Finished</button>
+<button class="flex-1 bg-primary-container text-on-primary-container font-label-caps text-label-caps py-gutter border border-primary-container uppercase transition-colors rounded-none flex items-center justify-center gap-xs">
+<span class="w-2 h-2 bg-black rounded-full animate-pulse"></span>
+                    Live
+                </button>
+</div>
+</div>
+<!-- Matches List -->
+<div class="flex flex-col gap-md px-container-margin py-md pb-xl">
+<!-- Tournament Group 1: Premier League -->
+<section class="flex flex-col gap-unit">
+<!-- Tournament Header -->
+<div class="flex items-center gap-sm pb-xs border-b border-outline-variant">
+<div class="w-6 h-6 flex items-center justify-center bg-surface-container rounded-none">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">emoji_events</span>
+</div>
+<h2 class="font-label-caps text-label-caps text-on-background uppercase tracking-widest">Premier League</h2>
+</div>
+<!-- Match Card: Live -->
+<article class="bg-[#121212] border border-[#222222] border-l-4 border-l-primary-fixed-dim rounded-none flex items-center p-sm gap-sm relative overflow-hidden group hover:border-outline-variant transition-colors">
+<!-- Live Indicator Overlay -->
+<div class="absolute top-0 right-0 bg-[#FF0000] text-white font-label-caps text-[10px] px-2 py-0.5 animate-pulse rounded-none">LIVE</div>
+<!-- Time / Status -->
+<div class="flex flex-col items-center justify-center min-w-[50px] border-r border-[#222222] pr-sm gap-xs">
+<span class="font-data-tabular text-data-tabular text-primary-fixed-dim">72'</span>
+</div>
+<!-- Teams & Scores -->
+<div class="flex-grow flex flex-col gap-xs py-xs">
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a high-contrast geometric crest in stark white and deep red, fitting a high-performance sports aesthetic, sharp edges, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwvq3ug22MPQtgOKykkRnoaL6OBsy-nettm_aYpXQfW_dJi1Z_RcpmByjxIdRRCVxhVpUUV_foLNs3yWNk71okgh7e72hDNt-CQ7cjQcoyB1G2AHbTyaPnsP3GiQnHMnNyPZgvfwK1u777VU1O98NWbMlsInyasla6TVzDNYNW24wMA6u6ZgkjhY6diJTjV7js4ZumKu2v70gtwzT2AGHmIxealPwaNpmM_O2OehyFnrhgNzfgO8J-sQsQ5tQj1y357x77HvPBgls"/>
+<span class="font-body-md text-body-md font-bold text-on-background uppercase tracking-tight">Arsenal</span>
+</div>
+<span class="font-match-score text-match-score text-primary-fixed-dim">2</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a sharp-edged shield logo in metallic blue and stark white, fitting a high-performance sports aesthetic, geometric precision, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFKonQH94R44QV-pHLO5DBvF6noSP-Xd-bIoM-qQaT8XmbV5U91qNnHksWZTUONLn6BKbU17hsEoSry1A06yEO832jSsq1-77VjzQdhf_MMbHixrIrkv2p_giAMkHpo64MFwQrYmbfIYyH25DvbPbRyLsKmddY9OETUp15WVeAKBo0uBg4TKqVMBA4Vf6esR-jip4Ohd7aK4M59yUefQ53D8u4fKbD7TpDR6JD9d-iQvx8G6Ol4KusoaUeOZ0hiHm4z9QowKS7Ee0"/>
+<span class="font-body-md text-body-md font-bold text-on-background uppercase tracking-tight">Chelsea</span>
+</div>
+<span class="font-match-score text-match-score text-on-background">1</span>
+</div>
+</div>
+</article>
+<!-- Match Card: Finished -->
+<article class="bg-[#121212] border border-[#222222] rounded-none flex items-center p-sm gap-sm hover:border-outline-variant transition-colors opacity-80">
+<!-- Time / Status -->
+<div class="flex flex-col items-center justify-center min-w-[50px] border-r border-[#222222] pr-sm gap-xs">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[10px]">FT</span>
+</div>
+<!-- Teams & Scores -->
+<div class="flex-grow flex flex-col gap-xs py-xs">
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a stylized bird emblem in high-contrast cyan and white, fitting a high-performance sports aesthetic, geometric precision, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByMCRc2I9TMUAwN3cTFtxIqQR1sLtNQg1QkImQ-7HxmJfvLMJ7-A_UNuL5K7dAIfAgi1HLz8WEBnOp4r3Zi471nQYt3ZIgWKikghAQ3y6-DPzke1QyAGv7TeLvbqQwIH7tFq178lG_NqwlDAiUcoBrGxYiKj8R9nKin_q0e92BY81-EAiqszePYB4Yuof0AGftWZmTrXMWWBHdZxBfSgDRwMQ4NfEqhYtFHFPg2OXQInv-mqRHCIS3p10us1vk71NUH5AyUE-P_Vg"/>
+<span class="font-body-md text-body-md text-on-background uppercase tracking-tight">Man City</span>
+</div>
+<span class="font-match-score text-match-score text-on-background">3</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a high-contrast geometric star crest in stark white and crimson, fitting a high-performance sports aesthetic, sharp edges, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSAVIzu7lNPKFlX_0whSyroqdLyWnnf4kJ6PP3jYQrUspJABQNtpKk9ghqjs3UBMhO6VQNABLfQzmuIGWtaIYrMLMk05RBiS1dSUdTQyCQOkIJ3fS5vuD0I2A1rX7XGhERFPGKs5LL1zbfzCUzTxPJf8GAuZXpKqPtCtiWcCrnqfRNoJTX-188PrqGwudpHi3Vu-IKPYmg0WDCN3y3_jaG87s-stzJS8GPQeukbvCRzHES66xll5LG1ZfCFLgCZdWP8pzKmebYDj0"/>
+<span class="font-body-md text-body-md font-bold text-on-background uppercase tracking-tight">Liverpool</span>
+</div>
+<span class="font-match-score text-match-score text-on-background">3</span>
+</div>
+</div>
+</article>
+</section>
+<!-- Tournament Group 2: La Liga -->
+<section class="flex flex-col gap-unit mt-md">
+<!-- Tournament Header -->
+<div class="flex items-center gap-sm pb-xs border-b border-outline-variant">
+<div class="w-6 h-6 flex items-center justify-center bg-surface-container rounded-none">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">emoji_events</span>
+</div>
+<h2 class="font-label-caps text-label-caps text-on-background uppercase tracking-widest">La Liga</h2>
+</div>
+<!-- Match Card: Upcoming -->
+<article class="bg-[#121212] border border-[#222222] rounded-none flex items-center p-sm gap-sm hover:border-outline-variant transition-colors">
+<!-- Time / Status -->
+<div class="flex flex-col items-center justify-center min-w-[50px] border-r border-[#222222] pr-sm gap-xs">
+<span class="font-data-tabular text-data-tabular text-on-background">20:00</span>
+</div>
+<!-- Teams & Scores -->
+<div class="flex-grow flex flex-col gap-xs py-xs">
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a crown and shield crest in stark white and deep gold, fitting a high-performance sports aesthetic, geometric precision, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF5l7B2FQu7Wu4BfK7rXuMQJUtxwI8rj1TgRcxQdK5EmwjtcD3DDD9Zn0stcT6FRKW_z8_UJ1awGz8G6kcn_MXkGNW2rwJ9i1LCExasBq0aXCQEgBB7y99_UDoJbcSG0SWCBOkvTGYhYsAX_VT0G6ms2UHSwuB1EqJMfBj01CmeH8DyNgGrydUMWCZ8K-TImjlZ9l3VlACtF3ncL0BXul2RDxhN1t_2gt8NfI7neCN3UJuVC62CsZg2P0L9SLuyEXyo6mB2wwRZWE"/>
+<span class="font-body-md text-body-md text-on-background uppercase tracking-tight">Real Madrid</span>
+</div>
+<span class="font-match-score text-match-score text-on-surface-variant">-</span>
+</div>
+<div class="flex justify-between items-center w-full">
+<div class="flex items-center gap-sm">
+<img class="w-6 h-6 object-contain grayscale brightness-200" data-alt="Minimalist abstract digital graphic representing a high-contrast geometric crest with stripes in stark white and deep maroon, fitting a high-performance sports aesthetic, sharp edges, dark mode optimized." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFTE733-mmd8ot0p-vdgHh1m10CGXUw0exHUPs0-6RtMblAaQJFAxJ86PJek2jnr5QG5bZ3srt9lp7KVDTqZHGUkK0WCEYH8zAGvP8RD5c99ISbB_GYhVVyTWXrNc34hQsC6PHumBvXgIHc8pxdHThAnv7H0-g5g4hh6haMuIAyO_CJuyl2pG4g7TTrvd-uRbSUT1_9LBm9IeqPM2uCUo8aZWcYVt9PaW4qXoXn2cKi4miNGdX53IHBtXRE9nErmuG2iAe0TFAtsU"/>
+<span class="font-body-md text-body-md text-on-background uppercase tracking-tight">Barcelona</span>
+</div>
+<span class="font-match-score text-match-score text-on-surface-variant">-</span>
+</div>
+</div>
+</article>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden bg-surface-dim dark:bg-surface-dim docked full-width bottom-0 z-50 border-t-2 border-outline-variant flat no shadows fixed bottom-0 w-full flex justify-around items-center h-16">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center text-primary-container border-t-2 border-primary-container pt-1 w-full h-full active:scale-95 transition-transform group" href="#">
+<span class="material-symbols-outlined text-[24px] group-hover:text-primary transition-colors fill" data-icon="home" data-weight="fill">home</span>
+<span class="font-label-caps text-label-caps mt-1 text-[10px] group-hover:text-primary transition-colors">Home</span>
+</a>
+<!-- Inactive Tab: Leagues -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-1 w-full h-full hover:text-primary active:scale-95 transition-transform group border-t-2 border-transparent" href="#">
+<span class="material-symbols-outlined text-[24px] transition-colors" data-icon="emoji_events">emoji_events</span>
+<span class="font-label-caps text-label-caps mt-1 text-[10px] transition-colors">Leagues</span>
+</a>
+<!-- Inactive Tab: Live -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-1 w-full h-full hover:text-primary active:scale-95 transition-transform group border-t-2 border-transparent" href="#">
+<span class="material-symbols-outlined text-[24px] transition-colors" data-icon="live_tv">live_tv</span>
+<span class="font-label-caps text-label-caps mt-1 text-[10px] transition-colors">Live</span>
+</a>
+<!-- Inactive Tab: Teams -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-1 w-full h-full hover:text-primary active:scale-95 transition-transform group border-t-2 border-transparent" href="#">
+<span class="material-symbols-outlined text-[24px] transition-colors" data-icon="groups">groups</span>
+<span class="font-label-caps text-label-caps mt-1 text-[10px] transition-colors">Teams</span>
+</a>
+<!-- Inactive Tab: Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant pt-1 w-full h-full hover:text-primary active:scale-95 transition-transform group border-t-2 border-transparent" href="#">
+<span class="material-symbols-outlined text-[24px] transition-colors" data-icon="person">person</span>
+<span class="font-label-caps text-label-caps mt-1 text-[10px] transition-colors">Profile</span>
+</a>
+</nav>
+</body></html>

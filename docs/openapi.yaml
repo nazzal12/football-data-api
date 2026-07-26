@@ -1,0 +1,1320 @@
+openapi: 3.1.0
+info:
+  title: Football API
+  version: "1.0.0"
+  description: |
+    Provider-agnostic public REST API for football data (Cloudflare Workers).
+    Clients must never call upstream providers directly.
+
+    Integration guide: docs/API.md
+
+    **ID model:** `by-external` bootstraps from upstream numeric ids and returns
+    stable internal UUIDs. Prefer UUIDs for subsequent requests.
+  contact:
+    name: Football API
+servers:
+  - url: https://football-api.nazzalkausar12.workers.dev
+    description: Production
+  - url: http://127.0.0.1:8787
+    description: Local wrangler
+
+tags:
+  - name: Health
+  - name: Matches
+  - name: Projections
+  - name: Teams
+  - name: Players
+  - name: Coaches
+  - name: Competitions
+  - name: Seasons
+  - name: Standings
+  - name: Leaders
+  - name: H2H
+  - name: Countries
+  - name: Venues
+  - name: Admin
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      operationId: getHealth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, service, environment]
+                properties:
+                  ok: { type: boolean }
+                  service: { type: string }
+                  environment: { type: string }
+
+  /v1/matches/by-external/{externalId}:
+    get:
+      tags: [Matches]
+      summary: Bootstrap match by upstream fixture id
+      operationId: getMatchByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Match
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "502": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}:
+    get:
+      tags: [Matches]
+      summary: Get match by internal UUID
+      operationId: getMatch
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Match
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/events:
+    get:
+      tags: [Matches]
+      summary: Match events
+      operationId: getMatchEvents
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Events wrapper
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [matchId, events]
+                properties:
+                  matchId: { type: string, format: uuid }
+                  events:
+                    type: array
+                    items: { $ref: "#/components/schemas/MatchEvent" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/lineups:
+    get:
+      tags: [Matches]
+      summary: Match lineups
+      operationId: getMatchLineups
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Lineups wrapper
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [matchId, lineups]
+                properties:
+                  matchId: { type: string, format: uuid }
+                  lineups:
+                    type: array
+                    items: { $ref: "#/components/schemas/MatchLineup" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/statistics:
+    get:
+      tags: [Matches]
+      summary: Team statistics for a match
+      operationId: getMatchStatistics
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: MatchStatistics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchStatistics" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/player-statistics:
+    get:
+      tags: [Matches]
+      summary: Per-player statistics for a match
+      operationId: getMatchPlayerStatistics
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: MatchPlayerStatistics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchPlayerStatistics" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/predictions:
+    get:
+      tags: [Matches]
+      summary: Pre-match prediction
+      operationId: getMatchPredictions
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: MatchPrediction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchPrediction" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/odds:
+    get:
+      tags: [Matches]
+      summary: Pre-match odds snapshot
+      operationId: getMatchOdds
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: MatchOdds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchOdds" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/matches/{id}/injuries:
+    get:
+      tags: [Matches]
+      summary: Injuries for a match
+      operationId: getMatchInjuries
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: InjuryReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InjuryReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/projections/matches/by-date/{date}:
+    get:
+      tags: [Projections]
+      summary: Match ids for a calendar date
+      operationId: getMatchProjectionByDate
+      parameters:
+        - name: date
+          in: path
+          required: true
+          schema: { type: string, format: date, example: "2024-08-16" }
+      responses:
+        "200":
+          description: MatchListProjection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchListProjection" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/projections/matches/by-league/{leagueId}/{seasonYear}:
+    get:
+      tags: [Projections]
+      summary: Match ids for a league season
+      operationId: getMatchProjectionByLeague
+      parameters:
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: MatchListProjection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchListProjection" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/projections/matches/by-team/{teamId}/{seasonYear}:
+    get:
+      tags: [Projections]
+      summary: Match ids for a team season
+      operationId: getMatchProjectionByTeam
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: MatchListProjection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchListProjection" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/projections/matches/live:
+    get:
+      tags: [Projections]
+      summary: Currently live match ids
+      operationId: getMatchProjectionLive
+      responses:
+        "200":
+          description: MatchListProjection
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchListProjection" }
+
+  /v1/teams/by-external/{externalId}:
+    get:
+      tags: [Teams]
+      summary: Bootstrap team by upstream id
+      operationId: getTeamByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Team
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/{id}:
+    get:
+      tags: [Teams]
+      summary: Get team by UUID
+      operationId: getTeam
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Team
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Team" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/by-external/{teamId}/squads/{leagueId}/{seasonYear}:
+    get:
+      tags: [Teams]
+      summary: Team squad for league season
+      operationId: getTeamSquad
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: Squad
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Squad" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/by-external/{teamId}/coach:
+    get:
+      tags: [Teams]
+      summary: Current coach for team
+      operationId: getTeamCoach
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: Coach
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Coach" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/by-external/{teamId}/transfers:
+    get:
+      tags: [Teams]
+      summary: Team transfers
+      operationId: getTeamTransfers
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: TransferReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransferReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/by-external/{teamId}/statistics/{leagueId}/{seasonYear}:
+    get:
+      tags: [Teams]
+      summary: Team season statistics
+      operationId: getTeamSeasonStatistics
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: TeamSeasonStatistics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamSeasonStatistics" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/teams/by-external/{teamId}/injuries/{seasonYear}:
+    get:
+      tags: [Teams]
+      summary: Team injuries for a season year
+      operationId: getTeamInjuries
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: InjuryReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InjuryReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/players/by-external/{externalId}:
+    get:
+      tags: [Players]
+      summary: Bootstrap player by upstream id
+      operationId: getPlayerByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Player
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Player" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/players/{id}:
+    get:
+      tags: [Players]
+      summary: Get player by UUID
+      operationId: getPlayer
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Player
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Player" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/players/by-external/{playerId}/transfers:
+    get:
+      tags: [Players]
+      summary: Player transfers
+      operationId: getPlayerTransfers
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: TransferReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransferReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/players/by-external/{playerId}/trophies:
+    get:
+      tags: [Players]
+      summary: Player trophies
+      operationId: getPlayerTrophies
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: TrophyReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrophyReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/players/by-external/{playerId}/sidelined:
+    get:
+      tags: [Players]
+      summary: Player sidelined history
+      operationId: getPlayerSidelined
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: SidelinedReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SidelinedReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/coaches/by-external/{externalId}:
+    get:
+      tags: [Coaches]
+      summary: Bootstrap coach by upstream id
+      operationId: getCoachByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Coach
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Coach" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/coaches/{id}:
+    get:
+      tags: [Coaches]
+      summary: Get coach by UUID
+      operationId: getCoach
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Coach
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Coach" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/coaches/by-external/{coachId}/trophies:
+    get:
+      tags: [Coaches]
+      summary: Coach trophies
+      operationId: getCoachTrophies
+      parameters:
+        - name: coachId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: TrophyReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TrophyReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/coaches/by-external/{coachId}/sidelined:
+    get:
+      tags: [Coaches]
+      summary: Coach sidelined history
+      operationId: getCoachSidelined
+      parameters:
+        - name: coachId
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: SidelinedReport
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SidelinedReport" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/competitions/by-external/{externalId}:
+    get:
+      tags: [Competitions]
+      summary: Bootstrap competition by upstream league id
+      operationId: getCompetitionByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Competition
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Competition" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/competitions/{id}:
+    get:
+      tags: [Competitions]
+      summary: Get competition by UUID
+      operationId: getCompetition
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Competition
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Competition" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/seasons/by-external/{leagueId}/{seasonYear}:
+    get:
+      tags: [Seasons]
+      summary: Bootstrap season by league + year
+      operationId: getSeasonByExternal
+      parameters:
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: Season
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Season" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/seasons/{id}:
+    get:
+      tags: [Seasons]
+      summary: Get season by UUID
+      operationId: getSeason
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Season
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Season" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/seasons/by-external/{leagueId}/{seasonYear}/rounds:
+    get:
+      tags: [Seasons]
+      summary: Season rounds list
+      operationId: getSeasonRounds
+      parameters:
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: SeasonRounds
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeasonRounds" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/standings/by-external/{leagueId}/{seasonYear}:
+    get:
+      tags: [Standings]
+      summary: Standings by league + year
+      operationId: getStandingsByExternal
+      parameters:
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+      responses:
+        "200":
+          description: Standings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Standings" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/standings/{id}:
+    get:
+      tags: [Standings]
+      summary: Get standings by UUID
+      operationId: getStandings
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Standings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Standings" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/leaders/by-external/{leagueId}/{seasonYear}/{kind}:
+    get:
+      tags: [Leaders]
+      summary: Season leaders (goals, assists, cards)
+      operationId: getSeasonLeaders
+      parameters:
+        - $ref: "#/components/parameters/LeagueId"
+        - $ref: "#/components/parameters/SeasonYear"
+        - name: kind
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [goals, assists, yellow_cards, red_cards]
+      responses:
+        "200":
+          description: SeasonLeaders
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SeasonLeaders" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/h2h/by-external/{teamA}/{teamB}:
+    get:
+      tags: [H2H]
+      summary: Head-to-head match ids between two teams
+      operationId: getHeadToHead
+      parameters:
+        - name: teamA
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+        - name: teamB
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: HeadToHead
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HeadToHead" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/countries/by-name/{name}:
+    get:
+      tags: [Countries]
+      summary: Country by name
+      operationId: getCountryByName
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string, example: England }
+      responses:
+        "200":
+          description: Country
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Country" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/venues/by-external/{externalId}:
+    get:
+      tags: [Venues]
+      summary: Bootstrap venue by upstream id
+      operationId: getVenueByExternal
+      parameters:
+        - $ref: "#/components/parameters/ExternalNumericId"
+      responses:
+        "200":
+          description: Venue
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Venue" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /v1/venues/{id}:
+    get:
+      tags: [Venues]
+      summary: Get venue by UUID
+      operationId: getVenue
+      parameters:
+        - $ref: "#/components/parameters/UuidId"
+      responses:
+        "200":
+          description: Venue
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Venue" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /v1/id-maps:
+    put:
+      tags: [Admin]
+      summary: Bind external id to internal UUID
+      operationId: putIdMap
+      security:
+        - AdminToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [externalType, externalId, internalId]
+              properties:
+                externalType: { type: string, example: match }
+                externalId: { type: string, example: "1208021" }
+                internalId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Bound
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, externalType, externalId, internalId]
+                properties:
+                  ok: { type: boolean }
+                  externalType: { type: string }
+                  externalId: { type: string }
+                  internalId: { type: string, format: uuid }
+        "401": { $ref: "#/components/responses/Problem" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    AdminToken:
+      type: apiKey
+      in: header
+      name: x-admin-token
+
+  parameters:
+    UuidId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ExternalNumericId:
+      name: externalId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[0-9]+$" }
+    LeagueId:
+      name: leagueId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[0-9]+$" }
+    SeasonYear:
+      name: seasonYear
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[0-9]{4}$", example: "2024" }
+
+  responses:
+    Problem:
+      description: Problem details
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ProblemDetails" }
+
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+        details: {}
+
+    MetricMap:
+      type: object
+      additionalProperties:
+        oneOf:
+          - type: number
+          - type: string
+          - type: boolean
+          - type: "null"
+
+    Country:
+      type: object
+      required: [schemaVersion, id, name]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: string, minLength: 2, maxLength: 3 }
+
+    Competition:
+      type: object
+      required: [schemaVersion, id, name, format, isLeague]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        format: { type: string, enum: [league, cup, international, other] }
+        isLeague: { type: boolean }
+        countryId: { type: string, format: uuid }
+
+    Season:
+      type: object
+      required: [schemaVersion, id, competitionId, label]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        competitionId: { type: string, format: uuid }
+        label: { type: string }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time }
+
+    Team:
+      type: object
+      required: [schemaVersion, id, name]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        shortName: { type: string }
+        countryId: { type: string, format: uuid }
+        venueId: { type: string, format: uuid }
+
+    Player:
+      type: object
+      required: [schemaVersion, id, name]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        age: { type: integer }
+        nationality: { type: string }
+        countryId: { type: string, format: uuid }
+        dateOfBirth: { type: string }
+        height: { type: string }
+        weight: { type: string }
+        position: { type: string }
+        photoUrl: { type: string, format: uri }
+
+    Coach:
+      type: object
+      required: [schemaVersion, id, name, career]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        nationality: { type: string }
+        dateOfBirth: { type: string }
+        photoUrl: { type: string, format: uri }
+        teamId: { type: string, format: uuid }
+        career:
+          type: array
+          items:
+            type: object
+            required: [teamId]
+            properties:
+              teamId: { type: string, format: uuid }
+              start: { type: string }
+              end: { type: string }
+
+    Venue:
+      type: object
+      required: [schemaVersion, id, name]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        city: { type: string }
+        countryId: { type: string, format: uuid }
+        capacity: { type: integer }
+
+    MatchEvent:
+      type: object
+      required: [sequence, type]
+      properties:
+        sequence: { type: integer }
+        minute: { type: integer }
+        extraMinute: { type: integer }
+        type:
+          type: string
+          enum:
+            [
+              goal,
+              own_goal,
+              penalty,
+              missed_penalty,
+              yellow_card,
+              red_card,
+              substitution,
+              var,
+              other,
+            ]
+        teamId: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        assistPlayerId: { type: string, format: uuid }
+        detail: { type: string }
+
+    MatchLineup:
+      type: object
+      required: [teamId, players]
+      properties:
+        teamId: { type: string, format: uuid }
+        players:
+          type: array
+          items:
+            type: object
+            required: [playerId, isStarter]
+            properties:
+              playerId: { type: string, format: uuid }
+              shirtNumber: { type: integer }
+              position: { type: string }
+              isStarter: { type: boolean }
+
+    Match:
+      type: object
+      required:
+        [
+          schemaVersion,
+          id,
+          seasonId,
+          competitionId,
+          phase,
+          status,
+          kickoffAt,
+          homeTeamId,
+          awayTeamId,
+          events,
+          lineups,
+        ]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        competitionId: { type: string, format: uuid }
+        phase: { type: string, enum: [future, live, finished, historical] }
+        status: { type: string }
+        kickoffAt: { type: string, format: date-time }
+        venueId: { type: string, format: uuid }
+        homeTeamId: { type: string, format: uuid }
+        awayTeamId: { type: string, format: uuid }
+        score:
+          type: object
+          required: [home, away]
+          properties:
+            home: { type: integer }
+            away: { type: integer }
+        minute: { type: integer }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/MatchEvent" }
+        lineups:
+          type: array
+          items: { $ref: "#/components/schemas/MatchLineup" }
+
+    Standings:
+      type: object
+      required: [schemaVersion, id, seasonId, rows]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        stage: { type: string }
+        group: { type: string }
+        rows:
+          type: array
+          items:
+            type: object
+            required:
+              [
+                rank,
+                teamId,
+                played,
+                won,
+                drawn,
+                lost,
+                goalsFor,
+                goalsAgainst,
+                goalDifference,
+                points,
+              ]
+            properties:
+              rank: { type: integer }
+              teamId: { type: string, format: uuid }
+              played: { type: integer }
+              won: { type: integer }
+              drawn: { type: integer }
+              lost: { type: integer }
+              goalsFor: { type: integer }
+              goalsAgainst: { type: integer }
+              goalDifference: { type: integer }
+              points: { type: integer }
+              form: { type: string }
+
+    MatchStatistics:
+      type: object
+      required: [schemaVersion, id, matchId, teams]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        teams:
+          type: array
+          items:
+            type: object
+            required: [teamId, metrics]
+            properties:
+              teamId: { type: string, format: uuid }
+              metrics: { $ref: "#/components/schemas/MetricMap" }
+
+    MatchPlayerStatistics:
+      type: object
+      required: [schemaVersion, id, matchId, players]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        players:
+          type: array
+          items:
+            type: object
+            required: [playerId, teamId, metrics]
+            properties:
+              playerId: { type: string, format: uuid }
+              teamId: { type: string, format: uuid }
+              metrics: { $ref: "#/components/schemas/MetricMap" }
+
+    MatchPrediction:
+      type: object
+      required: [schemaVersion, id, matchId]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        advice: { type: string }
+        winnerTeamId: { type: string, format: uuid }
+        winOrDraw: { type: boolean }
+        underOver: { type: string }
+        goalsHome: { type: string }
+        goalsAway: { type: string }
+        percentHome: { type: number }
+        percentDraw: { type: number }
+        percentAway: { type: number }
+        formHome: { type: string }
+        formAway: { type: string }
+
+    MatchOdds:
+      type: object
+      required: [schemaVersion, id, matchId, bookmakers]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        updatedAt: { type: string, format: date-time }
+        bookmakers:
+          type: array
+          items:
+            type: object
+            required: [name, bets]
+            properties:
+              name: { type: string }
+              bets:
+                type: array
+                items:
+                  type: object
+                  required: [name, values]
+                  properties:
+                    name: { type: string }
+                    values:
+                      type: array
+                      items:
+                        type: object
+                        required: [label, odd]
+                        properties:
+                          label: { type: string }
+                          odd: { type: number }
+
+    Squad:
+      type: object
+      required: [schemaVersion, id, seasonId, teamId, members]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        members:
+          type: array
+          items:
+            type: object
+            required: [playerId]
+            properties:
+              playerId: { type: string, format: uuid }
+              shirtNumber: { type: integer }
+              position: { type: string }
+
+    HeadToHead:
+      type: object
+      required: [schemaVersion, id, teamAId, teamBId, matchIds]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        teamAId: { type: string, format: uuid }
+        teamBId: { type: string, format: uuid }
+        matchIds:
+          type: array
+          items: { type: string, format: uuid }
+
+    InjuryReport:
+      type: object
+      required: [schemaVersion, id, injuries]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        injuries:
+          type: array
+          items:
+            type: object
+            required: [playerId, teamId]
+            properties:
+              playerId: { type: string, format: uuid }
+              teamId: { type: string, format: uuid }
+              type: { type: string }
+              reason: { type: string }
+              startDate: { type: string }
+
+    SeasonLeaders:
+      type: object
+      required: [schemaVersion, id, seasonId, kind, rows]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        kind:
+          type: string
+          enum: [goals, assists, yellow_cards, red_cards]
+        rows:
+          type: array
+          items:
+            type: object
+            required: [rank, playerId, teamId, value]
+            properties:
+              rank: { type: integer }
+              playerId: { type: string, format: uuid }
+              teamId: { type: string, format: uuid }
+              value: { type: number }
+
+    SeasonRounds:
+      type: object
+      required: [schemaVersion, id, seasonId, rounds]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        rounds:
+          type: array
+          items: { type: string }
+
+    TransferReport:
+      type: object
+      required: [schemaVersion, id, transfers]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        transfers:
+          type: array
+          items:
+            type: object
+            required: [playerId]
+            properties:
+              playerId: { type: string, format: uuid }
+              date: { type: string }
+              type: { type: string }
+              fromTeamId: { type: string, format: uuid }
+              toTeamId: { type: string, format: uuid }
+
+    TrophyReport:
+      type: object
+      required: [schemaVersion, id, subjectType, subjectId, trophies]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        subjectType: { type: string, enum: [player, team, coach] }
+        subjectId: { type: string, format: uuid }
+        trophies:
+          type: array
+          items:
+            type: object
+            properties:
+              place: { type: string }
+              season: { type: string }
+              competitionName: { type: string }
+              country: { type: string }
+
+    SidelinedReport:
+      type: object
+      required: [schemaVersion, id, entries]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        playerId: { type: string, format: uuid }
+        coachId: { type: string, format: uuid }
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              start: { type: string }
+              end: { type: string }
+
+    TeamSeasonStatistics:
+      type: object
+      required: [schemaVersion, id, teamId, seasonId, metrics]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        seasonId: { type: string, format: uuid }
+        form: { type: string }
+        fixturesPlayed: { type: integer }
+        wins: { type: integer }
+        draws: { type: integer }
+        losses: { type: integer }
+        goalsFor: { type: integer }
+        goalsAgainst: { type: integer }
+        cleanSheets: { type: integer }
+        failedToScore: { type: integer }
+        metrics: { $ref: "#/components/schemas/MetricMap" }
+
+    MatchListProjection:
+      type: object
+      required: [schemaVersion, id, kind, key, matchIds]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        kind: { type: string, const: match_list }
+        key: { type: string }
+        matchIds:
+          type: array
+          items: { type: string, format: uuid }

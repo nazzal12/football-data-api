@@ -24,9 +24,9 @@
       "events": [
         {
           "time": { "elapsed": 12, "extra": null },
-          "team": { "id": 33 },
-          "player": { "id": 9001 },
-          "assist": { "id": null },
+          "team": { "id": 33, "name": "Manchester United" },
+          "player": { "id": 9001, "name": "Example Player" },
+          "assist": { "id": null, "name": null },
           "type": "Goal",
           "detail": "Normal Goal"
         }

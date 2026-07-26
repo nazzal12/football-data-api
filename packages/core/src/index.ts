@@ -22,7 +22,14 @@ export type { LogFields, LogLevel, Logger } from "./logger.js";
 export { ConsoleLogger } from "./logger.js";
 
 export type { FreshnessClass, ObjectType } from "./constants.js";
-export { FRESHNESS_CLASSES, MS, OBJECT_TYPES, SCHEMA_VERSION } from "./constants.js";
+export {
+  FEATURED_LEAGUE_EXTERNAL_IDS,
+  FRESHNESS_CLASSES,
+  MS,
+  OBJECT_TYPES,
+  PROVIDER_FIXTURE_TIMEZONE,
+  SCHEMA_VERSION,
+} from "./constants.js";
 
 export type { AppConfig, ConfigSource } from "./config.js";
 export { loadConfig } from "./config.js";

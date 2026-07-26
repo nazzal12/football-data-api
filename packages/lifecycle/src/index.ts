@@ -1,7 +1,9 @@
 export {
   applyFailedRefresh,
   applySuccessfulRefresh,
+  dateListPolicy,
   decide,
+  liveListPolicy,
   matchPolicy,
   policyFor,
   resolveControlState,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,9 +43,23 @@ final homeFeedProvider = FutureProvider.autoDispose
     HomeDateTab.today => now,
     HomeDateTab.tomorrow => now.add(const Duration(days: 1)),
   };
+  final liveOnly = filter == HomeFilter.live;
+  // Today / live filter: bypass local cache and poll while visible.
+  if (liveOnly) {
+    final timer = Timer(const Duration(seconds: 5), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  } else if (tab == HomeDateTab.today) {
+    final timer = Timer(const Duration(minutes: 5), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  }
   return ref.read(footballRepositoryProvider).homeFeed(
         day: day,
-        liveOnly: filter == HomeFilter.live,
+        liveOnly: liveOnly,
+        forceRefresh: liveOnly || tab == HomeDateTab.today,
       );
 });
 

@@ -1,8 +1,9 @@
-import { isId, validationError } from "@football-api/core";
+import { isId, notFoundError, validationError } from "@football-api/core";
 import { Hono } from "hono";
 import type { WorkerBindings } from "./env.js";
 import { problem } from "./http.js";
 import { createServices } from "./wiring.js";
+import { runWarmup } from "./warmup.js";
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
 
@@ -764,6 +765,19 @@ app.get("/v1/seasons/by-external/:leagueId/:seasonYear/rounds", async (c) => {
   return c.json(result.value.rounds);
 });
 
+app.get("/v1/ids/:internalId", async (c) => {
+  const internalId = c.req.param("internalId");
+  if (!isId(internalId)) {
+    return c.json(problem(validationError("Invalid id"), c.req.path).body, 400);
+  }
+  const { resolver } = createServices(c.env);
+  const externalId = await resolver.toExternal(internalId);
+  if (!externalId) {
+    return c.json(problem(notFoundError("No external id for resource", { id: internalId }), c.req.path).body, 404);
+  }
+  return c.json({ internalId, externalId });
+});
+
 app.put("/v1/id-maps", async (c) => {
   const adminToken = c.env.ADMIN_TOKEN;
   if (!adminToken) {
@@ -815,5 +829,18 @@ app.put("/v1/id-maps", async (c) => {
   });
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(
+    _controller: ScheduledController,
+    env: WorkerBindings,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    ctx.waitUntil(
+      runWarmup(env).catch((err) => {
+        console.error("warmup failed", err);
+      }),
+    );
+  },
+};
 export type { WorkerBindings };
