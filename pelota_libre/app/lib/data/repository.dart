@@ -311,7 +311,7 @@ class FootballRepository {
   Future<List<MatchCardVm>> hydrateMatches(
     List<String> ids, {
     int limit = AppConfig.homeMatchLimit,
-    bool featuredOnly = true,
+    bool featuredOnly = false,
   }) async {
     final sw = Stopwatch()..start();
     if (featuredOnly) {
@@ -402,39 +402,81 @@ class FootballRepository {
     final sw = Stopwatch()..start();
     // Featured warm is optional when projection items already carry league names.
     final featuredFuture = ensureFeaturedCompetitions();
-    final MatchListProjection proj;
+    List<MatchCardVm> cards;
     if (liveOnly) {
       _log('homeFeed LIVE force=$forceRefresh');
-      proj = await _api.matchesLive(forceRefresh: forceRefresh);
-    } else {
-      final ymd =
-          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-      _log('homeFeed date=$ymd force=$forceRefresh');
-      proj = await _api.matchesByDate(ymd, forceRefresh: forceRefresh);
-    }
-    _log(
-      'projection ids=${proj.matchIds.length} items=${proj.items.length} after ${sw.elapsedMilliseconds}ms',
-    );
-
-    List<MatchCardVm> cards;
-    if (proj.items.isNotEmpty) {
-      cards = cardsFromProjectionItems(
-        proj.items,
-        limit: liveOnly ? AppConfig.liveMatchLimit : AppConfig.homeMatchLimit,
-        // null = all phases (today ALL must include live cards).
-        liveOnly: liveOnly ? true : null,
+      final proj = await _api.matchesLive(forceRefresh: forceRefresh);
+      _log(
+        'projection ids=${proj.matchIds.length} items=${proj.items.length} after ${sw.elapsedMilliseconds}ms',
       );
-      // Soft-warm featured leagues in background; do not block UI.
-      unawaited(featuredFuture);
-    } else {
-      await featuredFuture;
-      cards = await hydrateMatches(
-        proj.matchIds,
-        limit: liveOnly ? AppConfig.liveMatchLimit : AppConfig.homeMatchLimit,
-        featuredOnly: true,
-      );
-      if (liveOnly) {
+      if (proj.items.isNotEmpty) {
+        cards = cardsFromProjectionItems(
+          proj.items,
+          limit: AppConfig.liveMatchLimit,
+          liveOnly: true,
+        );
+        unawaited(featuredFuture);
+      } else {
+        await featuredFuture;
+        cards = await hydrateMatches(
+          proj.matchIds,
+          limit: AppConfig.liveMatchLimit,
+          featuredOnly: false,
+        );
         cards = cards.where((c) => c.match.isLive).toList();
+      }
+    } else {
+      final viewerYmd =
+          '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      final providerDays = [
+        day.subtract(const Duration(days: 1)),
+        day,
+        day.add(const Duration(days: 1)),
+      ];
+      _log('homeFeed date=$viewerYmd (±1) force=$forceRefresh');
+      final projs = await Future.wait(
+        providerDays.map((d) {
+          final ymd =
+              '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+          return _api.matchesByDate(ymd, forceRefresh: forceRefresh);
+        }),
+      );
+      final byId = <String, MatchListItem>{};
+      for (final proj in projs) {
+        for (final item in proj.items) {
+          final local = item.kickoffAt.toLocal();
+          final localYmd =
+              '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+          if (localYmd != viewerYmd) continue;
+          byId[item.matchId] = item;
+        }
+      }
+      _log(
+        'merged ${byId.length} viewer-day items after ${sw.elapsedMilliseconds}ms',
+      );
+      if (byId.isNotEmpty) {
+        cards = cardsFromProjectionItems(
+          byId.values.toList(),
+          limit: AppConfig.homeMatchLimit,
+        );
+        unawaited(featuredFuture);
+      } else {
+        await featuredFuture;
+        final ids = <String>{};
+        for (final proj in projs) {
+          ids.addAll(proj.matchIds);
+        }
+        cards = await hydrateMatches(
+          ids.toList(),
+          limit: AppConfig.homeMatchLimit,
+          featuredOnly: false,
+        );
+        cards = cards.where((c) {
+          final local = c.match.kickoffAt.toLocal();
+          final localYmd =
+              '${local.year.toString().padLeft(4, '0')}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+          return localYmd == viewerYmd;
+        }).toList();
       }
     }
     _log('homeFeed done ${cards.length} in ${sw.elapsedMilliseconds}ms');
@@ -454,7 +496,7 @@ class FootballRepository {
     final cards = await hydrateMatches(
       proj.matchIds,
       limit: AppConfig.liveMatchLimit,
-      featuredOnly: true,
+      featuredOnly: false,
     );
     return cards.where((c) => c.match.isLive).toList();
   }

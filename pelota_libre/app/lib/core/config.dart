@@ -32,14 +32,14 @@ abstract final class AppConfig {
     '11', // Copa Sudamericana
   ];
 
-  /// How many match cards to show after featured filtering.
-  static const homeMatchLimit = 12;
-  static const liveMatchLimit = 16;
+  /// How many match cards to show on home / live (full day; projection items are cheap).
+  static const homeMatchLimit = 800;
+  static const liveMatchLimit = 800;
   /// Keep low — high concurrency caused connection resets + provider 502 storms.
   static const hydrateConcurrency = 4;
   static const hydrateGapMs = 80;
-  /// Scan at most this many projection ids while hunting featured matches.
-  static const projectionScanLimit = 24;
+  /// Scan at most this many projection ids while hunting featured matches (legacy fallback).
+  static const projectionScanLimit = 800;
 
   /// CDN fallback when Team.logoUrl is missing (API-Sports media).
   static String teamLogoFallback(String externalTeamId) =>
