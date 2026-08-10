@@ -32,14 +32,15 @@ abstract final class AppConfig {
     '11', // Copa Sudamericana
   ];
 
-  /// How many match cards to show on home / live (full day; projection items are cheap).
-  static const homeMatchLimit = 800;
-  static const liveMatchLimit = 800;
+  /// How many match cards to hydrate when projection `items` are missing
+  /// (legacy fallback only — projection items are shown without cutoff).
+  static const homeMatchLimit = 5000;
+  static const liveMatchLimit = 5000;
   /// Keep low — high concurrency caused connection resets + provider 502 storms.
   static const hydrateConcurrency = 4;
   static const hydrateGapMs = 80;
   /// Scan at most this many projection ids while hunting featured matches (legacy fallback).
-  static const projectionScanLimit = 800;
+  static const projectionScanLimit = 5000;
 
   /// CDN fallback when Team.logoUrl is missing (API-Sports media).
   static String teamLogoFallback(String externalTeamId) =>

@@ -107,6 +107,30 @@ class Match {
   bool get isFinished => phase == 'finished' || phase == 'historical';
   bool get isUpcoming => phase == 'future';
 
+  Match copyWith({
+    String? phase,
+    String? status,
+    MatchScore? score,
+    int? minute,
+    List<MatchEvent>? events,
+    List<MatchLineup>? lineups,
+  }) =>
+      Match(
+        id: id,
+        seasonId: seasonId,
+        competitionId: competitionId,
+        phase: phase ?? this.phase,
+        status: status ?? this.status,
+        kickoffAt: kickoffAt,
+        homeTeamId: homeTeamId,
+        awayTeamId: awayTeamId,
+        venueId: venueId,
+        score: score ?? this.score,
+        minute: minute ?? this.minute,
+        events: events ?? this.events,
+        lineups: lineups ?? this.lineups,
+      );
+
   factory Match.fromJson(Map<String, dynamic> j) => Match(
         id: j['id'] as String,
         seasonId: j['seasonId'] as String,

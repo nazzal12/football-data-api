@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 
 import '../core/theme/app_colors.dart';
 import '../data/repository.dart';
+import '../l10n/app_localizations.dart';
 import 'chrome.dart';
 
+/// Compact horizontal match row — same layout in light and dark.
 class MatchListCard extends StatelessWidget {
   const MatchListCard({
     super.key,
@@ -19,173 +21,28 @@ class MatchListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return dark ? _DarkCard(card: card, onTap: onTap) : _LightCard(card: card, onTap: onTap);
-  }
-}
-
-class _DarkCard extends StatelessWidget {
-  const _DarkCard({required this.card, required this.onTap});
-  final MatchCardVm card;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final m = card.match;
     final live = m.isLive;
     final finished = m.isFinished;
-    final statusLabel = live
-        ? "${m.minute ?? m.status}'"
-        : finished
-            ? 'FT'
-            : DateFormat.Hm().format(m.kickoffAt.toLocal());
+
+    final border = dark ? PlColors.darkBorder : PlColors.lightBorder;
+    final bg = dark
+        ? PlColors.darkSurface
+        : (finished ? PlColors.lightSurfaceLow : PlColors.lightSurfaceLowest);
+    final nameColor = dark ? PlColors.darkOnSurface : PlColors.lightOnSurface;
+    final muted = dark
+        ? PlColors.darkOnSurfaceVariant
+        : PlColors.lightOnSurfaceVariant;
 
     return InkWell(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
         decoration: BoxDecoration(
-          color: PlColors.darkSurface,
-          border: Border(
-            left: BorderSide(
-              color: live ? PlColors.electricGreenDim : PlColors.darkBorder,
-              width: live ? 4 : 1,
-            ),
-            top: const BorderSide(color: PlColors.darkBorder),
-            right: const BorderSide(color: PlColors.darkBorder),
-            bottom: const BorderSide(color: PlColors.darkBorder),
-          ),
-        ),
-        child: Stack(
-          children: [
-            if (live)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  color: PlColors.liveRed,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  child: Text(
-                    'LIVE',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 10,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 50,
-                    child: Text(
-                      statusLabel,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 14,
-                        color: live
-                            ? PlColors.electricGreenDim
-                            : PlColors.darkOnSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Container(width: 1, height: 48, color: PlColors.darkBorder),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _darkRow(
-                          card.home.name,
-                          m.score?.home,
-                          logoUrl: card.home.logoUrl,
-                          highlight: live &&
-                              m.score != null &&
-                              m.score!.home > m.score!.away,
-                          upcoming: m.isUpcoming,
-                        ),
-                        const SizedBox(height: 6),
-                        _darkRow(
-                          card.away.name,
-                          m.score?.away,
-                          logoUrl: card.away.logoUrl,
-                          highlight: live &&
-                              m.score != null &&
-                              m.score!.away > m.score!.home,
-                          upcoming: m.isUpcoming,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _darkRow(
-    String name,
-    int? score, {
-    String? logoUrl,
-    bool highlight = false,
-    bool upcoming = false,
-  }) {
-    return Row(
-      children: [
-        EntityMark(label: name, logoUrl: logoUrl, size: 24),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            name.toUpperCase(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: PlColors.darkOnSurface,
-            ),
-          ),
-        ),
-        Text(
-          upcoming ? '-' : '${score ?? '-'}',
-          style: GoogleFonts.archivoNarrow(
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1,
-            color: highlight
-                ? PlColors.electricGreenDim
-                : PlColors.darkOnSurface,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LightCard extends StatelessWidget {
-  const _LightCard({required this.card, required this.onTap});
-  final MatchCardVm card;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final m = card.match;
-    final live = m.isLive;
-    final finished = m.isFinished;
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-        decoration: BoxDecoration(
-          color: finished ? PlColors.lightSurfaceLow : PlColors.lightSurfaceLowest,
-          border: Border.all(color: PlColors.lightBorder),
+          color: bg,
+          border: Border.all(color: border),
         ),
         child: Row(
           children: [
@@ -193,50 +50,52 @@ class _LightCard extends StatelessWidget {
               child: Text(
                 card.home.name.toUpperCase(),
                 textAlign: TextAlign.right,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.archivoNarrow(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
+                  height: 1.1,
+                  color: nameColor,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            EntityMark(label: card.home.name, logoUrl: card.home.logoUrl, size: 28),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            EntityMark(
+              label: card.home.name,
+              logoUrl: card.home.logoUrl,
+              size: 28,
+              whiteBackdrop: true,
+            ),
+            const SizedBox(width: 6),
             SizedBox(
-              width: 72,
+              width: 58,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   if (live)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: 4,
+                        vertical: 1,
                       ),
                       color: PlColors.electricGreen,
                       child: Text(
                         "${m.minute ?? ''}'",
                         style: GoogleFonts.archivoNarrow(
                           fontWeight: FontWeight.w700,
-                          fontSize: 11,
+                          fontSize: 10,
                           color: PlColors.lightOnPrimaryContainer,
                         ),
                       ),
                     )
                   else if (finished)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      color: PlColors.lightSurfaceHigh,
-                      child: Text(
-                        'FT',
-                        style: GoogleFonts.archivoNarrow(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                        ),
+                    Text(
+                      'FT',
+                      style: GoogleFonts.archivoNarrow(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        color: muted,
                       ),
                     )
                   else
@@ -244,38 +103,56 @@ class _LightCard extends StatelessWidget {
                       DateFormat.Hm().format(m.kickoffAt.toLocal()),
                       style: GoogleFonts.archivoNarrow(
                         fontWeight: FontWeight.w700,
-                        fontSize: 14,
+                        fontSize: 12,
+                        color: nameColor,
                       ),
                     ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     m.isUpcoming
                         ? 'VS'
                         : '${m.score?.home ?? '-'} - ${m.score?.away ?? '-'}',
                     style: GoogleFonts.anton(
-                      fontSize: m.isUpcoming ? 16 : 22,
-                      color: m.isUpcoming
-                          ? PlColors.lightOnSurfaceVariant
-                          : PlColors.lightOnSurface,
+                      fontSize: m.isUpcoming ? 13 : 17,
+                      color: m.isUpcoming ? muted : nameColor,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            EntityMark(label: card.away.name, logoUrl: card.away.logoUrl, size: 28),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
+            EntityMark(
+              label: card.away.name,
+              logoUrl: card.away.logoUrl,
+              size: 28,
+              whiteBackdrop: true,
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 card.away.name.toUpperCase(),
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.archivoNarrow(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
+                  height: 1.1,
+                  color: nameColor,
                 ),
               ),
             ),
+            if (live) ...[
+              const SizedBox(width: 4),
+              Text(
+                l10n.live,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 8,
+                  letterSpacing: 0.5,
+                  color: PlColors.liveRed,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ),
       ),

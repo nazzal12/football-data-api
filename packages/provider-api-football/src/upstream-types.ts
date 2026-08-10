@@ -24,6 +24,8 @@ export type UpstreamFixtureItem = {
   goals: { home: number | null; away: number | null };
   score?: {
     fulltime?: { home: number | null; away: number | null };
+    extratime?: { home: number | null; away: number | null };
+    penalty?: { home: number | null; away: number | null };
   };
   events?: Array<{
     time: { elapsed: number | null; extra: number | null };
@@ -37,4 +39,6 @@ export type UpstreamFixtureItem = {
 
 export type UpstreamFixturesResponse = {
   response: UpstreamFixtureItem[];
+  paging?: { current: number; total: number };
+  results?: number;
 };

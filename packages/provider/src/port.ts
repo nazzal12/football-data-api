@@ -36,7 +36,12 @@ export type ProviderMatchListRow = {
   kickoffAt: string;
   phase: MatchPhase;
   status: string;
-  score?: { home: number; away: number };
+  score?: {
+    home: number;
+    away: number;
+    penaltyHome?: number;
+    penaltyAway?: number;
+  };
   minute?: number;
   homeName: string;
   awayName: string;
@@ -51,6 +56,14 @@ export type QuotaSnapshot = {
   dailyRemaining?: number;
   minuteRemaining?: number;
   updatedAt: number;
+};
+
+/** Upstream search hit before UUID binding. */
+export type ProviderSearchHit = {
+  type: "team" | "competition" | "player";
+  externalId: string;
+  displayName: string;
+  logoUrl?: string;
 };
 
 export type ExternalRef = {
@@ -143,5 +156,10 @@ export interface FootballProvider {
   getTrophies?(internalId: string, externalId: string): Promise<Result<TrophyReport, AppError>>;
   /** externalId: "player:{id}" | "coach:{id}" */
   getSidelined?(internalId: string, externalId: string): Promise<Result<SidelinedReport, AppError>>;
+  /**
+   * Text search across teams, competitions, and players.
+   * Query should be at least 3 characters (upstream requirement for most search routes).
+   */
+  search?(query: string): Promise<Result<ProviderSearchHit[], AppError>>;
   getQuota?(): QuotaSnapshot | undefined;
 }

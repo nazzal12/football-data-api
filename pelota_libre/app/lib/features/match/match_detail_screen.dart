@@ -8,23 +8,19 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/feed_providers.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
 import '../../widgets/match_widgets.dart';
 
+/// Match document once — live score/minute come from [liveMatchesProvider].
 final matchCardProvider =
     FutureProvider.autoDispose.family<MatchCardVm, String>((ref, id) async {
   final repo = ref.read(footballRepositoryProvider);
   final m = await repo.match(id, forceRefresh: true);
-  // Live detail: keep scoreboard/minute fresh.
-  if (m.isLive) {
-    final timer = Timer(const Duration(seconds: 5), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(timer.cancel);
-  }
   final card = await repo.hydrateMatch(m);
   if (card == null) {
     throw ApiException(status: 404, message: 'Unable to hydrate match');
@@ -32,12 +28,13 @@ final matchCardProvider =
   return card;
 });
 
+/// Timeline only — while live, invalidate every 15s (do not re-poll /matches/{id}).
 final matchTimelineProvider = FutureProvider.autoDispose
     .family<({List<MatchEvent> events, Venue? venue}), String>((ref, id) async {
   final repo = ref.read(footballRepositoryProvider);
-  final m = await repo.match(id, forceRefresh: true);
+  final m = await repo.match(id);
   if (m.isLive) {
-    final timer = Timer(const Duration(seconds: 5), () {
+    final timer = Timer(const Duration(seconds: 15), () {
       ref.invalidateSelf();
     });
     ref.onDispose(timer.cancel);
@@ -62,11 +59,6 @@ final matchLineupsProvider =
   return repo.matchLineups(m);
 });
 
-final matchInjuriesProvider =
-    FutureProvider.autoDispose.family<InjuryReport?, String>((ref, id) {
-  return ref.read(footballRepositoryProvider).matchInjuries(id);
-});
-
 final matchH2HProvider =
     FutureProvider.autoDispose.family<List<MatchCardVm>, String>((ref, id) async {
   final repo = ref.read(footballRepositoryProvider);
@@ -85,7 +77,9 @@ class MatchDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final cardAsync = ref.watch(matchCardProvider(matchId));
+    final liveRow = ref.watch(liveMatchByIdProvider(matchId));
     final tab = ref.watch(matchDetailTabProvider(matchId));
 
     return Scaffold(
@@ -95,7 +89,8 @@ class MatchDetailScreen extends ConsumerWidget {
             child: CircularProgressIndicator(color: PlColors.electricGreen),
           ),
           error: (e, _) => Center(child: Text('$e')),
-          data: (card) {
+          data: (raw) {
+            final card = applyLiveBoardToCard(raw, liveRow);
             final timeline = ref.watch(matchTimelineProvider(matchId));
             return Column(
               children: [
@@ -118,13 +113,12 @@ class MatchDetailScreen extends ConsumerWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      for (final entry in const [
-                        (0, 'TIMELINE'),
-                        (1, 'LINEUPS'),
-                        (2, 'STATS'),
-                        (3, 'H2H'),
-                        (4, 'INJURIES'),
-                        (5, 'PREDS'),
+                      for (final entry in [
+                        (0, l10n.timeline),
+                        (1, l10n.stats),
+                        (2, l10n.lineups),
+                        (3, l10n.h2h),
+                        (4, l10n.predictions),
                       ])
                         InkWell(
                           onTap: () => ref
@@ -153,7 +147,7 @@ class MatchDetailScreen extends ConsumerWidget {
                               ),
                             ),
                             child: Text(
-                              entry.$2,
+                              entry.$2.toUpperCase(),
                               style: GoogleFonts.jetBrainsMono(
                                 fontSize: 11,
                                 letterSpacing: 1.5,
@@ -183,10 +177,9 @@ class MatchDetailScreen extends ConsumerWidget {
                         data: (ex) =>
                             _Timeline(events: ex.events, card: card),
                       ),
-                    1 => _LineupsTab(matchId: matchId, card: card),
-                    2 => _StatsTab(matchId: matchId, card: card),
+                    1 => _StatsTab(matchId: matchId, card: card),
+                    2 => _LineupsTab(matchId: matchId, card: card),
                     3 => _H2HTab(matchId: matchId),
-                    4 => _InjuriesTab(matchId: matchId),
                     _ => _PredsTab(matchId: matchId),
                   },
                 ),
@@ -207,12 +200,13 @@ class _Scoreboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final m = card.match;
     final date = DateFormat('d MMM yyyy').format(m.kickoffAt.toLocal()).toUpperCase();
     final status = m.isLive
-        ? 'LIVE ${m.minute ?? ''}\''
+        ? '${l10n.live} ${m.minute ?? ''}\''
         : m.isFinished
-            ? 'FULL TIME'
+            ? l10n.fullTime.toUpperCase()
             : DateFormat.Hm().format(m.kickoffAt.toLocal());
 
     return Container(
@@ -967,62 +961,6 @@ class _PlayerFace extends StatelessWidget {
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => fallback,
       ),
-    );
-  }
-}
-
-class _InjuriesTab extends ConsumerWidget {
-  const _InjuriesTab({required this.matchId});
-  final String matchId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(matchInjuriesProvider(matchId));
-    return async.when(
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: PlColors.electricGreen),
-      ),
-      error: (e, _) => Center(child: Text('$e')),
-      data: (report) {
-        final list = report?.injuries ?? const [];
-        if (list.isEmpty) {
-          return Center(
-            child: Text(
-              'NO INJURIES LISTED',
-              style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
-            ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: list.length,
-          separatorBuilder: (_, _) => const Divider(height: 16),
-          itemBuilder: (context, i) {
-            final e = list[i];
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (e.playerName ?? e.playerId).toUpperCase(),
-                  style: GoogleFonts.archivoNarrow(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  [e.type, e.reason, e.startDate]
-                      .whereType<String>()
-                      .where((s) => s.isNotEmpty)
-                      .join(' · ')
-                      .toUpperCase(),
-                  style: GoogleFonts.jetBrainsMono(fontSize: 11),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 }

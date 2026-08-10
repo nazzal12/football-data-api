@@ -38,14 +38,17 @@ class FootballApiClient {
   Future<JsonMap> getJson(
     String path, {
     bool forceRefresh = false,
+    bool forceUpstream = false,
     int fallbackMaxAge = 60,
   }) {
+    // App-open / force=1 must not join a pre-evict soft-stale in-flight.
     final existing = _inflight[path];
-    if (existing != null && !forceRefresh) return existing;
+    if (existing != null && !forceRefresh && !forceUpstream) return existing;
 
     final future = _getJsonImpl(
       path,
-      forceRefresh: forceRefresh,
+      forceRefresh: forceRefresh || forceUpstream,
+      forceUpstream: forceUpstream,
       fallbackMaxAge: fallbackMaxAge,
     );
     _inflight[path] = future;
@@ -60,6 +63,7 @@ class FootballApiClient {
   Future<JsonMap> _getJsonImpl(
     String path, {
     required bool forceRefresh,
+    required bool forceUpstream,
     required int fallbackMaxAge,
   }) async {
     final cached = _cache.get(path);
@@ -73,7 +77,11 @@ class FootballApiClient {
       _log('CACHE HIT stale $path (revalidate)');
       unawaited(() async {
         try {
-          await _networkFetchWithRetry(path, fallbackMaxAge: fallbackMaxAge);
+          await _networkFetchWithRetry(
+            path,
+            forceUpstream: false,
+            fallbackMaxAge: fallbackMaxAge,
+          );
         } catch (e) {
           _log('BG revalidate fail $path: $e');
         }
@@ -82,7 +90,11 @@ class FootballApiClient {
     }
 
     try {
-      return await _networkFetchWithRetry(path, fallbackMaxAge: fallbackMaxAge);
+      return await _networkFetchWithRetry(
+        path,
+        forceUpstream: forceUpstream,
+        fallbackMaxAge: fallbackMaxAge,
+      );
     } on ApiException catch (e) {
       if (cached != null && cached.isEmergencyUsable) {
         _log('NET FAIL $path → emergency cache (${e.message})');
@@ -94,6 +106,7 @@ class FootballApiClient {
 
   Future<JsonMap> _networkFetchWithRetry(
     String path, {
+    required bool forceUpstream,
     required int fallbackMaxAge,
   }) async {
     ApiException? last;
@@ -104,7 +117,11 @@ class FootballApiClient {
           _log('RETRY $path attempt=${attempt + 1} wait=${wait.inMilliseconds}ms');
           await Future<void>.delayed(wait);
         }
-        return await _networkFetch(path, fallbackMaxAge: fallbackMaxAge);
+        return await _networkFetch(
+          path,
+          forceUpstream: forceUpstream,
+          fallbackMaxAge: fallbackMaxAge,
+        );
       } on ApiException catch (e) {
         last = e;
         // DNS / offline (status 0) — do not burn retries.
@@ -129,11 +146,15 @@ class FootballApiClient {
 
   Future<JsonMap> _networkFetch(
     String path, {
+    required bool forceUpstream,
     required int fallbackMaxAge,
   }) async {
     try {
-      _log('GET $path');
-      final res = await _dio.get<dynamic>(path);
+      _log('GET $path${forceUpstream ? '?force=1' : ''}');
+      final res = await _dio.get<dynamic>(
+        path,
+        queryParameters: forceUpstream ? {'force': '1'} : null,
+      );
       final status = res.statusCode ?? 0;
       final data = res.data;
 
@@ -198,19 +219,25 @@ class FootballApi {
   Future<MatchListProjection> matchesByDate(
     String ymd, {
     bool forceRefresh = false,
+    bool forceUpstream = false,
   }) async {
     final j = await client.getJson(
       '/v1/projections/matches/by-date/$ymd',
       forceRefresh: forceRefresh,
+      forceUpstream: forceUpstream,
       fallbackMaxAge: 60,
     );
     return MatchListProjection.fromJson(j);
   }
 
-  Future<MatchListProjection> matchesLive({bool forceRefresh = false}) async {
+  Future<MatchListProjection> matchesLive({
+    bool forceRefresh = false,
+    bool forceUpstream = false,
+  }) async {
     final j = await client.getJson(
       '/v1/projections/matches/live',
       forceRefresh: forceRefresh,
+      forceUpstream: forceUpstream,
       fallbackMaxAge: 5,
     );
     return MatchListProjection.fromJson(j);

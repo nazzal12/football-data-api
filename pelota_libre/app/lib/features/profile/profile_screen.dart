@@ -4,7 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../data/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
+import '../settings/language_provider.dart';
+import '../settings/language_selection_dialog.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -13,6 +16,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dark = ref.watch(themeModePrefProvider);
     final year = ref.watch(seasonYearProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final lang = ref.watch(languageProvider);
 
     return Column(
       children: [
@@ -22,13 +27,30 @@ class ProfileScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               Text(
-                'SETTINGS',
+                l10n.settingsTab.toUpperCase(),
                 style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
               ),
               const SizedBox(height: 16),
               _tile(
                 context,
-                title: 'DARK MODE',
+                title: l10n.language.toUpperCase(),
+                trailing: Text(
+                  lang?.languageCode == 'en' ? l10n.english : l10n.spanish,
+                  style: GoogleFonts.jetBrainsMono(
+                    color: PlColors.electricGreen,
+                  ),
+                ),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) =>
+                        const LanguageSelectionDialog(isDismissible: true),
+                  );
+                },
+              ),
+              _tile(
+                context,
+                title: l10n.darkMode.toUpperCase(),
                 trailing: Switch(
                   value: dark,
                   activeThumbColor: Colors.black,
@@ -39,7 +61,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _tile(
                 context,
-                title: 'SEASON YEAR',
+                title: l10n.seasonYear.toUpperCase(),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -67,12 +89,12 @@ class ProfileScreen extends ConsumerWidget {
               ),
               _tile(
                 context,
-                title: 'CLEAR LOCAL CACHE',
+                title: l10n.clearLocalCache.toUpperCase(),
                 onTap: () async {
                   await ref.read(responseCacheProvider).clear();
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Local cache cleared')),
+                      SnackBar(content: Text(l10n.cacheCleared)),
                     );
                   }
                 },
@@ -93,22 +115,21 @@ class ProfileScreen extends ConsumerWidget {
                   color: PlColors.darkOnSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               Text(
-                'IMAGE DISCLAIMER',
+                l10n.disclaimer.toUpperCase(),
                 style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
               ),
               const SizedBox(height: 8),
               Text(
-                'Team logos, competition badges, and player photos are shown only '
-                'for identification. Pelota Libre does not own these images and '
-                'makes no claim of ownership or endorsement. All rights remain '
-                'with their respective owners / data providers.',
+                l10n.disclaimerText,
                 style: GoogleFonts.inter(
                   color: PlColors.darkOnSurfaceVariant,
-                  height: 1.4,
+                  height: 1.45,
+                  fontSize: 13,
                 ),
               ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

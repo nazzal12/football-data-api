@@ -11,6 +11,7 @@ import {
   matchSchema,
   matchStatisticsSchema,
   playerSchema,
+  searchResultSchema,
   seasonLeadersSchema,
   seasonRoundsSchema,
   seasonSchema,
@@ -30,6 +31,7 @@ export const publicCompetitionSchema = competitionSchema;
 export const publicSeasonSchema = seasonSchema;
 export const publicTeamSchema = teamSchema;
 export const publicPlayerSchema = playerSchema;
+export const publicSearchResultSchema = searchResultSchema;
 export const publicCoachSchema = coachSchema;
 export const publicVenueSchema = venueSchema;
 export const publicMatchSchema = matchSchema;

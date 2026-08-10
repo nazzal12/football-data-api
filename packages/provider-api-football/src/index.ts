@@ -27,3 +27,8 @@ export { mapMatchPlayerStatisticsToCanonical } from "./map-match-player-stats.js
 export { mapTrophiesToCanonical, parseTrophyExternalId } from "./map-trophies.js";
 export { mapSidelinedToCanonical, parseSidelinedExternalId } from "./map-sidelined.js";
 export { mapSeasonRoundsToCanonical, parseRoundsExternalId } from "./map-rounds.js";
+export {
+  mapLeaguesSearchHits,
+  mapPlayerProfilesSearchHits,
+  mapTeamsSearchHits,
+} from "./map-search.js";

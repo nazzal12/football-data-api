@@ -9,11 +9,12 @@ enabled = true
 
 [vars]
 ENVIRONMENT = "production"
+# Soft client gate (Dart app + verfutbollibre.net). Set ACCESS_GUARD=off in .dev.vars to disable locally.
 
-# Catalog warmup only (teams, tournaments, yesterday/today/tomorrow lists).
+# Date lists every 5 minutes (matches 5m soft TTL). Catalog every 5 hours.
 # Live matches are NEVER cron-refreshed — user request + 5s lifecycle only.
 [triggers]
-crons = ["0 */5 * * *"]
+crons = ["*/5 * * * *", "0 */5 * * *"]
 
 # Workers KV — metadata, lifecycle, id maps, leases
 [[kv_namespaces]]

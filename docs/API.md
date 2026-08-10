@@ -231,7 +231,11 @@ Response: `MatchListProjection`
       "awayName": "Away",
       "homeLogoUrl": "https://...",
       "awayLogoUrl": "https://...",
-      "competitionName": "Premier League"
+      "competitionName": "Premier League",
+      "externalId": "1208021",
+      "homeExternalId": "33",
+      "awayExternalId": "34",
+      "competitionExternalId": "39"
     }
   ]
 }
@@ -258,6 +262,33 @@ Response: `MatchListProjection`
 | GET | `/v1/players/by-external/{playerId}/transfers` | `TransferReport` |
 | GET | `/v1/players/by-external/{playerId}/trophies` | `TrophyReport` |
 | GET | `/v1/players/by-external/{playerId}/sidelined` | `SidelinedReport` |
+
+### Search
+
+| Method | Path | Params | Response |
+|--------|------|--------|----------|
+| GET | `/v1/search` | `q` (min 3 chars) | `SearchResult` — teams, competitions, players with UUIDs |
+
+Response shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "…",
+  "query": "neym",
+  "results": [
+    {
+      "type": "player",
+      "id": "uuid",
+      "externalId": "276",
+      "displayName": "Neymar",
+      "logoUrl": "https://…"
+    }
+  ]
+}
+```
+
+`type` ∈ `team` | `competition` | `player`. Prefer `id` (UUID) for navigation; `externalId` is the upstream numeric id.
 
 ### Coaches
 
@@ -289,6 +320,7 @@ Response: `MatchListProjection`
 | GET | `/v1/countries/by-name/{name}` | `Country` — URL-encode spaces |
 | GET | `/v1/venues/by-external/{externalId}` | `Venue` |
 | GET | `/v1/venues/{id}` | `Venue` |
+| GET | `/v1/search` | `SearchResult` — query param `q` (min 3 chars) |
 
 ### ID resolution
 

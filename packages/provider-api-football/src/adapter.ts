@@ -28,6 +28,7 @@ import type {
 import type {
   FootballProvider,
   ProviderMatchListRow,
+  ProviderSearchHit,
   QuotaSnapshot,
 } from "@football-api/provider";
 import { mapFixturesToListRows } from "./map-list-rows.js";
@@ -106,6 +107,14 @@ import {
   mapSeasonRoundsToCanonical,
   parseRoundsExternalId,
 } from "./map-rounds.js";
+import {
+  type UpstreamLeaguesSearchResponse,
+  type UpstreamPlayerProfilesSearchResponse,
+  type UpstreamTeamsSearchResponse,
+  mapLeaguesSearchHits,
+  mapPlayerProfilesSearchHits,
+  mapTeamsSearchHits,
+} from "./map-search.js";
 import { mapLeagueSeasonToCanonical, parseSeasonExternalId } from "./map-season.js";
 import {
   type UpstreamSquadsResponse,
@@ -117,7 +126,10 @@ import {
   parseStandingsExternalId,
 } from "./map-standings.js";
 import { type UpstreamTeamItem, mapTeamToCanonical } from "./map-team.js";
-import type { UpstreamFixturesResponse } from "./upstream-types.js";
+import type {
+  UpstreamFixtureItem,
+  UpstreamFixturesResponse,
+} from "./upstream-types.js";
 
 export type ApiFootballClientOptions = {
   apiKey: string;
@@ -273,49 +285,63 @@ export class ApiFootballProvider implements FootballProvider {
     return `timezone=${encodeURIComponent(PROVIDER_FIXTURE_TIMEZONE)}`;
   }
 
+  /** Fetch every page of a fixtures listing (API-Football paginates large days). */
+  private async requestFixturesAll(
+    pathWithoutPage: string,
+  ): Promise<Result<UpstreamFixtureItem[], AppError>> {
+    const first = await this.requestJson<UpstreamFixturesResponse>(pathWithoutPage);
+    if (!first.ok) return first;
+    const items = [...(first.value.response ?? [])];
+    const totalPages = Math.max(1, first.value.paging?.total ?? 1);
+    for (let page = 2; page <= totalPages; page++) {
+      const sep = pathWithoutPage.includes("?") ? "&" : "?";
+      const next = await this.requestJson<UpstreamFixturesResponse>(
+        `${pathWithoutPage}${sep}page=${page}`,
+      );
+      if (!next.ok) return next;
+      items.push(...(next.value.response ?? []));
+    }
+    return ok(items);
+  }
+
   async listMatchRowsByDate(date: string): Promise<Result<ProviderMatchListRow[], AppError>> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return err(providerError("date must be YYYY-MM-DD", { date }));
     }
-    const body = await this.requestJson<UpstreamFixturesResponse>(
+    const fixtures = await this.requestFixturesAll(
       `/fixtures?date=${encodeURIComponent(date)}&${this.tzQuery()}`,
     );
-    if (!body.ok) return body;
-    return ok(
-      mapFixturesToListRows(body.value.response ?? [], { featuredOnly: true, limit: 60 }),
-    );
+    if (!fixtures.ok) return fixtures;
+    // Full worldwide day — clients render from hydrated `items` (no N+1).
+    return ok(mapFixturesToListRows(fixtures.value));
   }
 
   async listMatchRowsByLeagueSeason(
     leagueId: string,
     seasonYear: string,
   ): Promise<Result<ProviderMatchListRow[], AppError>> {
-    const body = await this.requestJson<UpstreamFixturesResponse>(
+    const fixtures = await this.requestFixturesAll(
       `/fixtures?league=${encodeURIComponent(leagueId)}&season=${encodeURIComponent(seasonYear)}&${this.tzQuery()}`,
     );
-    if (!body.ok) return body;
-    return ok(mapFixturesToListRows(body.value.response ?? [], { limit: 60 }));
+    if (!fixtures.ok) return fixtures;
+    return ok(mapFixturesToListRows(fixtures.value));
   }
 
   async listMatchRowsByTeamSeason(
     teamId: string,
     seasonYear: string,
   ): Promise<Result<ProviderMatchListRow[], AppError>> {
-    const body = await this.requestJson<UpstreamFixturesResponse>(
+    const fixtures = await this.requestFixturesAll(
       `/fixtures?team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(seasonYear)}&${this.tzQuery()}`,
     );
-    if (!body.ok) return body;
-    return ok(mapFixturesToListRows(body.value.response ?? [], { limit: 40 }));
+    if (!fixtures.ok) return fixtures;
+    return ok(mapFixturesToListRows(fixtures.value));
   }
 
   async listLiveMatchRows(): Promise<Result<ProviderMatchListRow[], AppError>> {
-    const body = await this.requestJson<UpstreamFixturesResponse>(
-      `/fixtures?live=all&${this.tzQuery()}`,
-    );
-    if (!body.ok) return body;
-    return ok(
-      mapFixturesToListRows(body.value.response ?? [], { featuredOnly: true, limit: 40 }),
-    );
+    const fixtures = await this.requestFixturesAll(`/fixtures?live=all&${this.tzQuery()}`);
+    if (!fixtures.ok) return fixtures;
+    return ok(mapFixturesToListRows(fixtures.value));
   }
 
   async listMatchExternalIdsByDate(date: string): Promise<Result<string[], AppError>> {
@@ -384,7 +410,13 @@ export class ApiFootballProvider implements FootballProvider {
     );
     if (!body.ok) return body;
     if (!body.value.response?.length) {
-      return err(providerError("Match statistics not found upstream", { matchExternalId }));
+      // Upstream often omits stats for early cup rounds — empty payload, not an error.
+      return ok({
+        schemaVersion: 1,
+        id: internalId,
+        matchId: matchInternalId,
+        teams: [],
+      });
     }
     try {
       return ok(
@@ -910,5 +942,33 @@ export class ApiFootballProvider implements FootballProvider {
       const message = cause instanceof Error ? cause.message : String(cause);
       return err(providerError("Season rounds mapping failed", { cause: message }));
     }
+  }
+
+  async search(query: string): Promise<Result<ProviderSearchHit[], AppError>> {
+    const q = query.trim();
+    if (q.length < 3) {
+      return err(providerError("Search query must be at least 3 characters", { query: q }));
+    }
+    const encoded = encodeURIComponent(q);
+    const [teams, leagues, players] = await Promise.all([
+      this.requestJson<UpstreamTeamsSearchResponse>(`/teams?search=${encoded}`),
+      this.requestJson<UpstreamLeaguesSearchResponse>(`/leagues?search=${encoded}`),
+      this.requestJson<UpstreamPlayerProfilesSearchResponse>(
+        `/players/profiles?search=${encoded}`,
+      ),
+    ]);
+
+    // Soft-fail individual arms so one upstream miss does not empty the whole search.
+    const hits: ProviderSearchHit[] = [];
+    if (teams.ok) hits.push(...mapTeamsSearchHits(teams.value));
+    if (leagues.ok) hits.push(...mapLeaguesSearchHits(leagues.value));
+    if (players.ok) hits.push(...mapPlayerProfilesSearchHits(players.value));
+
+    if (!teams.ok && !leagues.ok && !players.ok) {
+      return err(teams.error);
+    }
+
+    // Cap to keep response small and quota-friendly for UUID binding.
+    return ok(hits.slice(0, 40));
   }
 }

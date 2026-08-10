@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
 import '../../widgets/match_widgets.dart';
 
@@ -45,134 +46,139 @@ final searchResultsProvider = FutureProvider.autoDispose<
 });
 
 class SearchScreen extends ConsumerWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.embeddedInShell = false});
+
+  /// When true (bottom-nav tab), hide back button — search is a root tab.
+  final bool embeddedInShell;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final q = ref.watch(searchQueryProvider);
     final async = ref.watch(searchResultsProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            PlAppBar(
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: dark ? PlColors.electricGreen : PlColors.lightPrimary,
-                ),
-                onPressed: () => context.pop(),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: TextField(
-                autofocus: true,
-                onChanged: (v) => ref.read(searchQueryProvider.notifier).set(v),
-                style: GoogleFonts.inter(),
-                decoration: InputDecoration(
-                  hintText: 'Search teams, leagues, matches…',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: dark
-                      ? PlColors.darkSurfaceLow
-                      : PlColors.lightSurfaceLow,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(
-                      color: dark ? PlColors.darkBorder : PlColors.lightBorder,
-                    ),
+    final body = Column(
+      children: [
+        PlAppBar(
+          leading: embeddedInShell
+              ? null
+              : IconButton(
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color:
+                        dark ? PlColors.electricGreen : PlColors.lightPrimary,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(
-                      color: dark ? PlColors.darkBorder : PlColors.lightBorder,
-                    ),
-                  ),
+                  onPressed: () => context.pop(),
                 ),
-              ),
-            ),
-            Expanded(
-              child: q.trim().length < 2
-                  ? Center(
-                      child: Text(
-                        'TYPE AT LEAST 2 CHARACTERS',
-                        style: GoogleFonts.jetBrainsMono(letterSpacing: 1),
-                      ),
-                    )
-                  : async.when(
-                      skipLoadingOnReload: true,
-                      loading: () => const Center(
-                        child: CircularProgressIndicator(
-                          color: PlColors.electricGreen,
-                        ),
-                      ),
-                      error: (e, _) => Center(child: Text('$e')),
-                      data: (res) {
-                        final empty = res.competitions.isEmpty &&
-                            res.teams.isEmpty &&
-                            res.matches.isEmpty;
-                        if (empty) {
-                          return Center(
-                            child: Text(
-                              'NO RESULTS',
-                              style:
-                                  GoogleFonts.jetBrainsMono(letterSpacing: 2),
-                            ),
-                          );
-                        }
-                        return ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            if (res.competitions.isNotEmpty) ...[
-                              _section('LEAGUES'),
-                              for (final c in res.competitions)
-                                ListTile(
-                                  leading: EntityMark(
-                                    label: c.name,
-                                    logoUrl: c.logoUrl,
-                                    size: 36,
-                                  ),
-                                  title: Text(c.name.toUpperCase()),
-                                  onTap: () =>
-                                      context.push('/league/${c.id}'),
-                                ),
-                              const SizedBox(height: 12),
-                            ],
-                            if (res.teams.isNotEmpty) ...[
-                              _section('TEAMS'),
-                              for (final t in res.teams)
-                                ListTile(
-                                  leading: EntityMark(
-                                    label: t.name,
-                                    logoUrl: t.logoUrl,
-                                    size: 36,
-                                  ),
-                                  title: Text(t.name.toUpperCase()),
-                                  onTap: () => context.push('/team/${t.id}'),
-                                ),
-                              const SizedBox(height: 12),
-                            ],
-                            if (res.matches.isNotEmpty) ...[
-                              _section('MATCHES'),
-                              for (final m in res.matches)
-                                MatchListCard(
-                                  card: m,
-                                  onTap: () =>
-                                      context.push('/match/${m.match.id}'),
-                                ),
-                            ],
-                          ],
-                        );
-                      },
-                    ),
-            ),
-          ],
         ),
-      ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: TextField(
+            autofocus: !embeddedInShell,
+            onChanged: (v) => ref.read(searchQueryProvider.notifier).set(v),
+            style: GoogleFonts.inter(),
+            decoration: InputDecoration(
+              hintText: l10n.searchHint,
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor:
+                  dark ? PlColors.darkSurfaceLow : PlColors.lightSurfaceLow,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(
+                  color: dark ? PlColors.darkBorder : PlColors.lightBorder,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(
+                  color: dark ? PlColors.darkBorder : PlColors.lightBorder,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: q.trim().length < 2
+              ? Center(
+                  child: Text(
+                    l10n.typeAtLeast2.toUpperCase(),
+                    style: GoogleFonts.jetBrainsMono(letterSpacing: 1),
+                  ),
+                )
+              : async.when(
+                  skipLoadingOnReload: true,
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: PlColors.electricGreen,
+                    ),
+                  ),
+                  error: (e, _) => Center(child: Text('$e')),
+                  data: (res) {
+                    final empty = res.competitions.isEmpty &&
+                        res.teams.isEmpty &&
+                        res.matches.isEmpty;
+                    if (empty) {
+                      return Center(
+                        child: Text(
+                          l10n.noResults.toUpperCase(),
+                          style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
+                        ),
+                      );
+                    }
+                    return ListView(
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        if (res.matches.isNotEmpty) ...[
+                          _section(l10n.searchSectionMatches),
+                          for (final m in res.matches)
+                            MatchListCard(
+                              card: m,
+                              onTap: () =>
+                                  context.push('/match/${m.match.id}'),
+                            ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (res.competitions.isNotEmpty) ...[
+                          _section(l10n.searchSectionLeagues),
+                          for (final c in res.competitions)
+                            ListTile(
+                              leading: EntityMark(
+                                label: c.name,
+                                logoUrl: c.logoUrl,
+                                size: 36,
+                                whiteBackdrop: true,
+                              ),
+                              title: Text(c.name.toUpperCase()),
+                              onTap: () => context.push('/league/${c.id}'),
+                            ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (res.teams.isNotEmpty) ...[
+                          _section(l10n.searchSectionTeams),
+                          for (final t in res.teams)
+                            ListTile(
+                              leading: EntityMark(
+                                label: t.name,
+                                logoUrl: t.logoUrl,
+                                size: 36,
+                                whiteBackdrop: true,
+                              ),
+                              title: Text(t.name.toUpperCase()),
+                              onTap: () => context.push('/team/${t.id}'),
+                            ),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+        ),
+      ],
     );
+
+    if (embeddedInShell) return body;
+    return Scaffold(body: SafeArea(child: body));
   }
 
   Widget _section(String title) {

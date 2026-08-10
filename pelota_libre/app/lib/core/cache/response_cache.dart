@@ -85,6 +85,11 @@ class ResponseCache {
     await _box.put(key, jsonEncode(entry.toJson()));
   }
 
+  Future<void> delete(String key) async {
+    _memory.remove(key);
+    await _box.delete(key);
+  }
+
   Future<void> clear() async {
     _memory.clear();
     await _box.clear();

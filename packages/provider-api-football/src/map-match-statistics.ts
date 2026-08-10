@@ -16,6 +16,18 @@ function metricKey(type: string): string {
     .replace(/^_|_$/g, "");
 }
 
+function coerceMetricValue(value: unknown): number | string | boolean | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 export async function mapFixtureStatisticsToCanonical(
   body: UpstreamFixtureStatisticsResponse,
   internalId: string,
@@ -26,7 +38,8 @@ export async function mapFixtureStatisticsToCanonical(
   for (const side of body.response ?? []) {
     const metrics: Record<string, number | string | boolean | null> = {};
     for (const row of side.statistics ?? []) {
-      metrics[metricKey(row.type) || "unknown"] = row.value;
+      const key = metricKey(row.type || "") || "unknown";
+      metrics[key] = coerceMetricValue(row.value);
     }
     teams.push({
       teamId: await resolve.teamId(side.team.id),

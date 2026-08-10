@@ -162,9 +162,10 @@ class FootballRepository {
 
   /// Instant cards from projection `items` (no per-match N+1).
   /// [liveOnly] null = all phases; true = live only; false = non-live only.
+  /// [limit] null = no cutoff (show every projection item).
   List<MatchCardVm> cardsFromProjectionItems(
     List<MatchListItem> items, {
-    int limit = AppConfig.homeMatchLimit,
+    int? limit,
     bool? liveOnly,
   }) {
     final out = <MatchCardVm>[];
@@ -199,7 +200,7 @@ class FootballRepository {
       out.add(
         MatchCardVm(match: m, home: home, away: away, competition: comp),
       );
-      if (out.length >= limit) break;
+      if (limit != null && out.length >= limit) break;
     }
     return out;
   }
@@ -398,21 +399,24 @@ class FootballRepository {
     required DateTime day,
     required bool liveOnly,
     bool forceRefresh = false,
+    bool forceUpstream = false,
   }) async {
     final sw = Stopwatch()..start();
     // Featured warm is optional when projection items already carry league names.
     final featuredFuture = ensureFeaturedCompetitions();
     List<MatchCardVm> cards;
     if (liveOnly) {
-      _log('homeFeed LIVE force=$forceRefresh');
-      final proj = await _api.matchesLive(forceRefresh: forceRefresh);
+      _log('homeFeed LIVE force=$forceRefresh upstream=$forceUpstream');
+      final proj = await _api.matchesLive(
+        forceRefresh: forceRefresh,
+        forceUpstream: forceUpstream,
+      );
       _log(
         'projection ids=${proj.matchIds.length} items=${proj.items.length} after ${sw.elapsedMilliseconds}ms',
       );
       if (proj.items.isNotEmpty) {
         cards = cardsFromProjectionItems(
           proj.items,
-          limit: AppConfig.liveMatchLimit,
           liveOnly: true,
         );
         unawaited(featuredFuture);
@@ -420,7 +424,7 @@ class FootballRepository {
         await featuredFuture;
         cards = await hydrateMatches(
           proj.matchIds,
-          limit: AppConfig.liveMatchLimit,
+          limit: proj.matchIds.length,
           featuredOnly: false,
         );
         cards = cards.where((c) => c.match.isLive).toList();
@@ -433,12 +437,16 @@ class FootballRepository {
         day,
         day.add(const Duration(days: 1)),
       ];
-      _log('homeFeed date=$viewerYmd (±1) force=$forceRefresh');
+      _log('homeFeed date=$viewerYmd (±1) force=$forceRefresh upstream=$forceUpstream');
       final projs = await Future.wait(
         providerDays.map((d) {
           final ymd =
               '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-          return _api.matchesByDate(ymd, forceRefresh: forceRefresh);
+          return _api.matchesByDate(
+            ymd,
+            forceRefresh: forceRefresh,
+            forceUpstream: forceUpstream,
+          );
         }),
       );
       final byId = <String, MatchListItem>{};
@@ -457,7 +465,6 @@ class FootballRepository {
       if (byId.isNotEmpty) {
         cards = cardsFromProjectionItems(
           byId.values.toList(),
-          limit: AppConfig.homeMatchLimit,
         );
         unawaited(featuredFuture);
       } else {
@@ -468,7 +475,7 @@ class FootballRepository {
         }
         cards = await hydrateMatches(
           ids.toList(),
-          limit: AppConfig.homeMatchLimit,
+          limit: ids.length,
           featuredOnly: false,
         );
         cards = cards.where((c) {
@@ -483,19 +490,24 @@ class FootballRepository {
     return groupByCompetition(cards);
   }
 
-  Future<List<MatchCardVm>> liveFeed({bool forceRefresh = true}) async {
-    final proj = await _api.matchesLive(forceRefresh: forceRefresh);
+  Future<List<MatchCardVm>> liveFeed({
+    bool forceRefresh = true,
+    bool forceUpstream = false,
+  }) async {
+    final proj = await _api.matchesLive(
+      forceRefresh: forceRefresh,
+      forceUpstream: forceUpstream,
+    );
     if (proj.items.isNotEmpty) {
       return cardsFromProjectionItems(
         proj.items,
-        limit: AppConfig.liveMatchLimit,
         liveOnly: true,
       );
     }
     await ensureFeaturedCompetitions();
     final cards = await hydrateMatches(
       proj.matchIds,
-      limit: AppConfig.liveMatchLimit,
+      limit: proj.matchIds.length,
       featuredOnly: false,
     );
     return cards.where((c) => c.match.isLive).toList();
@@ -883,9 +895,18 @@ class FootballRepository {
 
     final comps = discoveredCompetitions.values
         .where((c) => c.name.toLowerCase().contains(q))
-        .take(20)
         .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+      ..sort((a, b) {
+        final aExact = a.name.toLowerCase() == q;
+        final bExact = b.name.toLowerCase() == q;
+        if (aExact != bExact) return aExact ? -1 : 1;
+        final aStarts = a.name.toLowerCase().startsWith(q);
+        final bStarts = b.name.toLowerCase().startsWith(q);
+        if (aStarts != bStarts) return aStarts ? -1 : 1;
+        return a.name.compareTo(b.name);
+      });
+    final topComps = comps.take(20).toList();
+    final compIds = topComps.map((c) => c.id).toSet();
 
     final teams = discoveredTeams.values
         .where(
@@ -893,29 +914,85 @@ class FootballRepository {
               t.name.toLowerCase().contains(q) ||
               (t.shortName?.toLowerCase().contains(q) ?? false),
         )
-        .take(30)
         .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+      ..sort((a, b) {
+        final aExact = a.name.toLowerCase() == q;
+        final bExact = b.name.toLowerCase() == q;
+        if (aExact != bExact) return aExact ? -1 : 1;
+        return a.name.compareTo(b.name);
+      });
+    final topTeams = teams.take(30).toList();
+    final teamIds = topTeams.map((t) => t.id).toSet();
 
-    final matchCards = <MatchCardVm>[];
-    for (final m in _matches.values) {
-      final home = _teams[m.homeTeamId];
-      final away = _teams[m.awayTeamId];
-      final comp = _comps[m.competitionId];
-      final hay = [
-        home?.name,
-        away?.name,
-        comp?.name,
-        home?.shortName,
-        away?.shortName,
-      ].whereType<String>().join(' ').toLowerCase();
-      if (!hay.contains(q)) continue;
+    // Matches first priority: related to matched leagues/teams, then name hits.
+    final related = <MatchCardVm>[];
+    final nameHits = <MatchCardVm>[];
+    final seen = <String>{};
+
+    Future<void> consider(Match m, {required bool prioritized}) async {
+      if (seen.contains(m.id)) return;
       final card = await hydrateMatch(m);
-      if (card != null) matchCards.add(card);
-      if (matchCards.length >= 20) break;
+      if (card == null) return;
+      seen.add(m.id);
+      if (prioritized) {
+        related.add(card);
+      } else {
+        nameHits.add(card);
+      }
     }
 
-    return (competitions: comps, teams: teams, matches: matchCards);
+    for (final m in _matches.values) {
+      final byLeague = compIds.contains(m.competitionId);
+      final byTeam =
+          teamIds.contains(m.homeTeamId) || teamIds.contains(m.awayTeamId);
+      if (byLeague || byTeam) {
+        await consider(m, prioritized: true);
+        if (related.length >= 40) break;
+      }
+    }
+
+    if (related.length + nameHits.length < 40) {
+      for (final m in _matches.values) {
+        if (seen.contains(m.id)) continue;
+        final home = _teams[m.homeTeamId];
+        final away = _teams[m.awayTeamId];
+        final comp = _comps[m.competitionId];
+        final hay = [
+          home?.name,
+          away?.name,
+          comp?.name,
+          home?.shortName,
+          away?.shortName,
+        ].whereType<String>().join(' ').toLowerCase();
+        if (!hay.contains(q)) continue;
+        await consider(m, prioritized: false);
+        if (related.length + nameHits.length >= 40) break;
+      }
+    }
+
+    // Prefer live → upcoming → finished within each bucket.
+    int phaseRank(MatchCardVm c) {
+      if (c.match.isLive) return 0;
+      if (c.match.isUpcoming) return 1;
+      return 2;
+    }
+
+    related.sort((a, b) {
+      final p = phaseRank(a).compareTo(phaseRank(b));
+      if (p != 0) return p;
+      return a.match.kickoffAt.compareTo(b.match.kickoffAt);
+    });
+    nameHits.sort((a, b) {
+      final p = phaseRank(a).compareTo(phaseRank(b));
+      if (p != 0) return p;
+      return a.match.kickoffAt.compareTo(b.match.kickoffAt);
+    });
+
+    return (
+      competitions: topComps,
+      teams: topTeams,
+      matches: [...related, ...nameHits],
+    );
   }
 
   FootballApi get api => _api;

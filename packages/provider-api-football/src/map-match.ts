@@ -26,8 +26,14 @@ function mapEventType(type: string, detail: string): MatchEvent["type"] {
   const d = detail.toLowerCase();
   if (t === "goal") {
     if (d.includes("own")) return "own_goal";
+    if (d.includes("missed") && d.includes("penalty")) return "missed_penalty";
     if (d.includes("penalty")) return "penalty";
     return "goal";
+  }
+  // API-Football also emits type=Penalty / Missed Penalty as card-like rows.
+  if (t.includes("penalty") || d.includes("penalty")) {
+    if (d.includes("miss")) return "missed_penalty";
+    return "penalty";
   }
   if (t === "card") {
     if (d.includes("red")) return "red_card";
@@ -36,6 +42,21 @@ function mapEventType(type: string, detail: string): MatchEvent["type"] {
   if (t === "subst") return "substitution";
   if (t === "var") return "var";
   return "other";
+}
+
+function scoreFromUpstream(item: UpstreamFixtureItem):
+  | { home: number; away: number; penaltyHome?: number; penaltyAway?: number }
+  | undefined {
+  const homeGoals = item.goals.home ?? item.score?.fulltime?.home ?? null;
+  const awayGoals = item.goals.away ?? item.score?.fulltime?.away ?? null;
+  if (homeGoals == null || awayGoals == null) return undefined;
+  const ph = item.score?.penalty?.home;
+  const pa = item.score?.penalty?.away;
+  return {
+    home: homeGoals,
+    away: awayGoals,
+    ...(ph != null && pa != null ? { penaltyHome: ph, penaltyAway: pa } : {}),
+  };
 }
 
 export async function mapFixtureToMatch(
@@ -76,12 +97,32 @@ export async function mapFixtureToMatch(
       item.fixture.venue?.id != null ? await ids.venueId?.(item.fixture.venue.id) : undefined,
     homeTeamId: await ids.teamId(item.teams.home.id),
     awayTeamId: await ids.teamId(item.teams.away.id),
-    score:
-      homeGoals != null && awayGoals != null ? { home: homeGoals, away: awayGoals } : undefined,
+    score: scoreFromUpstream(item),
     minute: item.fixture.status.elapsed ?? undefined,
     events,
     lineups: [],
   };
+
+  // If upstream omitted score.penalty, derive shootout totals from events.
+  if (
+    raw.score &&
+    raw.score.penaltyHome == null &&
+    (item.fixture.status.short === "PEN" || item.fixture.status.short === "P")
+  ) {
+    const homeId = raw.homeTeamId;
+    let ph = 0;
+    let pa = 0;
+    let saw = false;
+    for (const e of events) {
+      if (e.type !== "penalty") continue;
+      saw = true;
+      if (e.teamId === homeId) ph += 1;
+      else pa += 1;
+    }
+    if (saw) {
+      raw.score = { ...raw.score, penaltyHome: ph, penaltyAway: pa };
+    }
+  }
 
   return parseCanonical(matchSchema, raw);
 }

@@ -203,6 +203,9 @@ export const matchScoreSchema = z
   .object({
     home: z.number().int().nonnegative(),
     away: z.number().int().nonnegative(),
+    /** Penalty shootout conversion count (not regulation goals). */
+    penaltyHome: z.number().int().nonnegative().optional(),
+    penaltyAway: z.number().int().nonnegative().optional(),
   })
   .strict();
 
@@ -522,6 +525,11 @@ export const matchListItemSchema = z
     awayLogoUrl: z.string().url().optional(),
     competitionName: z.string().min(1).optional(),
     competitionLogoUrl: z.string().url().optional(),
+    /** Upstream fixture id — for SEO URLs / by-external without N+1 id lookups. */
+    externalId: z.string().min(1).optional(),
+    homeExternalId: z.string().min(1).optional(),
+    awayExternalId: z.string().min(1).optional(),
+    competitionExternalId: z.string().min(1).optional(),
   })
   .strict();
 export type MatchListItem = z.infer<typeof matchListItemSchema>;
@@ -538,3 +546,26 @@ export const matchListProjectionSchema = z
   })
   .strict();
 export type MatchListProjection = z.infer<typeof matchListProjectionSchema>;
+
+/** One hit from a global text search (team / competition / player). */
+export const searchHitSchema = z
+  .object({
+    type: z.enum(["team", "competition", "player"]),
+    id: entityIdSchema,
+    externalId: z.string().min(1),
+    displayName: z.string().min(1),
+    logoUrl: z.string().url().optional(),
+  })
+  .strict();
+export type SearchHit = z.infer<typeof searchHitSchema>;
+
+/** Aggregated search response for client typeahead / search screens. */
+export const searchResultSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    id: entityIdSchema,
+    query: z.string().min(1),
+    results: z.array(searchHitSchema),
+  })
+  .strict();
+export type SearchResult = z.infer<typeof searchResultSchema>;

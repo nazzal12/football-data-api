@@ -1,11 +1,48 @@
 import { isId, notFoundError, validationError } from "@football-api/core";
 import { Hono } from "hono";
+import { decideAccess, isAccessGuardEnabled } from "./access.js";
 import type { WorkerBindings } from "./env.js";
 import { problem } from "./http.js";
 import { createServices } from "./wiring.js";
-import { runWarmup } from "./warmup.js";
+import {
+  runWarmup,
+  warmupModeForCron,
+  WARMUP_LAST_KEY,
+  type WarmupLast,
+} from "./warmup.js";
+import type { GetMatchListResult } from "./orchestrator.js";
+import type { AppError, Result } from "@football-api/core";
+import {
+  getOrCacheMedia,
+  isMediaKind,
+  rewriteLogoToMediaProxy,
+} from "./media.js";
 
 const app = new Hono<{ Bindings: WorkerBindings }>();
+
+/** Soft gate: Dart app, site Worker, site browser Origin/Referer — no API key. */
+app.use("*", async (c, next) => {
+  if (!isAccessGuardEnabled(c.env)) {
+    await next();
+    return;
+  }
+  const decision = decideAccess(c.req.raw, c.env);
+  if (decision.allowed) {
+    await next();
+    return;
+  }
+  return c.json(
+    {
+      type: "https://football-api.local/problems/forbidden",
+      title: "FORBIDDEN",
+      status: 403,
+      detail: "Client not allowed",
+      instance: c.req.path,
+      code: "FORBIDDEN",
+    },
+    403,
+  );
+});
 
 app.onError((error, c) => {
   const message = error instanceof Error ? error.message : String(error);
@@ -22,14 +59,107 @@ app.onError((error, c) => {
   );
 });
 
-app.get("/health", (c) => {
+app.get("/health", async (c) => {
+  const { meta } = createServices(c.env);
+  const warmup = await meta.getJson<WarmupLast>(WARMUP_LAST_KEY);
   return c.json({
     ok: true,
     service: "football-api",
     environment: c.env.ENVIRONMENT ?? "unknown",
+    ...(warmup ? { warmup } : {}),
   });
 });
 
+function scheduleProjectionRefresh(
+  c: { executionCtx: { waitUntil: (promise: Promise<unknown>) => void } },
+  result: Result<GetMatchListResult, AppError>,
+): void {
+  if (!result.ok) return;
+  const bg = result.value.backgroundRefresh;
+  if (!bg) return;
+  c.executionCtx.waitUntil(
+    bg().catch((err: unknown) => {
+      console.error("projection background refresh failed", err);
+    }),
+  );
+}
+
+function requestOrigin(request: Request): string {
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return "https://football-api.nazzalkausar12.workers.dev";
+  }
+}
+
+/** Point list/entity logo fields at /v1/media so images are served from R2. */
+function rewriteProjectionLogos<T>(projection: T, origin: string): T {
+  if (!projection || typeof projection !== "object") return projection;
+  const doc = projection as {
+    items?: Array<Record<string, unknown>>;
+  };
+  if (!Array.isArray(doc.items)) return projection;
+  for (const item of doc.items) {
+    if (item.homeLogoUrl != null) {
+      item.homeLogoUrl = rewriteLogoToMediaProxy(String(item.homeLogoUrl), origin);
+    }
+    if (item.awayLogoUrl != null) {
+      item.awayLogoUrl = rewriteLogoToMediaProxy(String(item.awayLogoUrl), origin);
+    }
+    if (item.competitionLogoUrl != null) {
+      item.competitionLogoUrl = rewriteLogoToMediaProxy(
+        String(item.competitionLogoUrl),
+        origin,
+      );
+    }
+  }
+  return projection;
+}
+
+function rewriteEntityLogo<T extends { logoUrl?: string; photoUrl?: string }>(
+  entity: T,
+  origin: string,
+): T {
+  if (entity.logoUrl) {
+    entity.logoUrl = rewriteLogoToMediaProxy(entity.logoUrl, origin);
+  }
+  if (entity.photoUrl) {
+    entity.photoUrl = rewriteLogoToMediaProxy(entity.photoUrl, origin);
+  }
+  return entity;
+}
+
+/** R2-backed media proxy for team / league / player / venue images. */
+app.get("/v1/media/:kind/:file", async (c) => {
+  const kindRaw = c.req.param("kind");
+  const file = c.req.param("file");
+  const idMatch = /^(\d+)\.png$/i.exec(file);
+  if (!isMediaKind(kindRaw) || !idMatch) {
+    return c.json(
+      problem(
+        validationError("path must be /v1/media/{teams|leagues|players|venues}/{id}.png"),
+        c.req.path,
+      ).body,
+      400,
+    );
+  }
+  const externalId = idMatch[1];
+  const { objects } = createServices(c.env);
+  try {
+    const result = await getOrCacheMedia({
+      objects,
+      kind: kindRaw,
+      externalId,
+    });
+    c.header("Content-Type", result.contentType);
+    c.header("Cache-Control", "public, max-age=604800, immutable");
+    c.header("X-Cache", result.cacheHit ? "HIT" : "MISS");
+    return c.body(result.body);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json(problem(notFoundError(message), c.req.path).body, 404);
+  }
+});
 /** Bootstrap: fetch match by upstream fixture id (creates stable internal UUID in KV). */
 app.get("/v1/matches/by-external/:externalId", async (c) => {
   const externalId = c.req.param("externalId");
@@ -249,7 +379,7 @@ app.get("/v1/teams/by-external/:externalId", async (c) => {
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
-  return c.json(result.value.team);
+  return c.json(rewriteEntityLogo(result.value.team, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/teams/:id", async (c) => {
@@ -265,7 +395,7 @@ app.get("/v1/teams/:id", async (c) => {
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
-  return c.json(result.value.team);
+  return c.json(rewriteEntityLogo(result.value.team, requestOrigin(c.req.raw)));
 });
 
 /** Squad: team + league + season (league binds canonical season id). */
@@ -386,7 +516,7 @@ app.get("/v1/players/by-external/:externalId", async (c) => {
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
   c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
-  return c.json(result.value.player);
+  return c.json(rewriteEntityLogo(result.value.player, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/players/by-external/:playerId/transfers", async (c) => {
@@ -448,7 +578,7 @@ app.get("/v1/players/:id", async (c) => {
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
-  return c.json(result.value.player);
+  return c.json(rewriteEntityLogo(result.value.player, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/coaches/by-external/:externalId", async (c) => {
@@ -526,7 +656,7 @@ app.get("/v1/competitions/by-external/:externalId", async (c) => {
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
-  return c.json(result.value.competition);
+  return c.json(rewriteEntityLogo(result.value.competition, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/competitions/:id", async (c) => {
@@ -541,7 +671,7 @@ app.get("/v1/competitions/:id", async (c) => {
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
-  return c.json(result.value.competition);
+  return c.json(rewriteEntityLogo(result.value.competition, requestOrigin(c.req.raw)));
 });
 
 /** Season: /v1/seasons/by-external/:leagueId/:seasonYear e.g. 39/2024 */
@@ -625,8 +755,12 @@ app.get("/v1/projections/matches/by-date/:date", async (c) => {
     return c.json(problem(validationError("date must be YYYY-MM-DD"), c.req.path).body, 400);
   }
   const key = `date:${date}`;
+  const forceRefresh = c.req.query("force") === "1";
   const { orchestrator } = createServices(c.env);
-  const result = await orchestrator.getMatchListProjection(c.req.raw, key);
+  const result = await orchestrator.getMatchListProjection(c.req.raw, key, {
+    forceRefresh,
+  });
+  scheduleProjectionRefresh(c, result);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
@@ -634,7 +768,8 @@ app.get("/v1/projections/matches/by-date/:date", async (c) => {
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
   c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
-  return c.json(result.value.projection);
+  c.header("X-SWR", result.value.backgroundRefresh ? "1" : "0");
+  return c.json(rewriteProjectionLogos(result.value.projection, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/projections/matches/by-league/:leagueId/:seasonYear", async (c) => {
@@ -651,6 +786,7 @@ app.get("/v1/projections/matches/by-league/:leagueId/:seasonYear", async (c) => 
     c.req.raw,
     `league:${leagueId}:${seasonYear}`,
   );
+  scheduleProjectionRefresh(c, result);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
@@ -658,7 +794,8 @@ app.get("/v1/projections/matches/by-league/:leagueId/:seasonYear", async (c) => 
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
   c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
-  return c.json(result.value.projection);
+  c.header("X-SWR", result.value.backgroundRefresh ? "1" : "0");
+  return c.json(rewriteProjectionLogos(result.value.projection, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/projections/matches/by-team/:teamId/:seasonYear", async (c) => {
@@ -675,6 +812,7 @@ app.get("/v1/projections/matches/by-team/:teamId/:seasonYear", async (c) => {
     c.req.raw,
     `team:${teamId}:${seasonYear}`,
   );
+  scheduleProjectionRefresh(c, result);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
@@ -682,12 +820,17 @@ app.get("/v1/projections/matches/by-team/:teamId/:seasonYear", async (c) => {
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
   c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
-  return c.json(result.value.projection);
+  c.header("X-SWR", result.value.backgroundRefresh ? "1" : "0");
+  return c.json(rewriteProjectionLogos(result.value.projection, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/projections/matches/live", async (c) => {
+  const forceRefresh = c.req.query("force") === "1";
   const { orchestrator } = createServices(c.env);
-  const result = await orchestrator.getMatchListProjection(c.req.raw, "live");
+  const result = await orchestrator.getMatchListProjection(c.req.raw, "live", {
+    forceRefresh,
+  });
+  scheduleProjectionRefresh(c, result);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
     return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
@@ -695,7 +838,8 @@ app.get("/v1/projections/matches/live", async (c) => {
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
   c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
-  return c.json(result.value.projection);
+  c.header("X-SWR", result.value.backgroundRefresh ? "1" : "0");
+  return c.json(rewriteProjectionLogos(result.value.projection, requestOrigin(c.req.raw)));
 });
 
 app.get("/v1/countries/by-name/:name", async (c) => {
@@ -741,6 +885,27 @@ app.get("/v1/venues/:id", async (c) => {
   }
   c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
   return c.json(result.value.venue);
+});
+
+/** Text search across teams, competitions, and players (min 3 chars). */
+app.get("/v1/search", async (c) => {
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 3) {
+    return c.json(
+      problem(validationError("Query parameter q must be at least 3 characters"), c.req.path).body,
+      400,
+    );
+  }
+  const { orchestrator } = createServices(c.env);
+  const result = await orchestrator.search(c.req.raw, q);
+  if (!result.ok) {
+    const p = problem(result.error, c.req.path);
+    return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
+  }
+  c.header("Cache-Control", `public, max-age=${result.value.cacheTtlSeconds}`);
+  c.header("X-Cache", result.value.cacheHit ? "HIT" : "MISS");
+  c.header("X-Refreshed", result.value.refreshed ? "1" : "0");
+  return c.json(result.value.search);
 });
 
 app.get("/v1/seasons/by-external/:leagueId/:seasonYear/rounds", async (c) => {
@@ -832,13 +997,14 @@ app.put("/v1/id-maps", async (c) => {
 export default {
   fetch: app.fetch,
   async scheduled(
-    _controller: ScheduledController,
+    controller: ScheduledController,
     env: WorkerBindings,
     ctx: ExecutionContext,
   ): Promise<void> {
+    const mode = warmupModeForCron(controller.cron);
     ctx.waitUntil(
-      runWarmup(env).catch((err) => {
-        console.error("warmup failed", err);
+      runWarmup(env, { mode }).catch((err) => {
+        console.error("warmup failed", { mode, err });
       }),
     );
   },

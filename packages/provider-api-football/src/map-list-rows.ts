@@ -27,7 +27,6 @@ export function mapFixturesToListRows(
   items: UpstreamFixtureItem[],
   opts?: { featuredOnly?: boolean; limit?: number },
 ): ProviderMatchListRow[] {
-  const limit = opts?.limit ?? 60;
   let source = items;
   if (opts?.featuredOnly) {
     const featured = items.filter((item) => FEATURED.has(String(item.league.id)));
@@ -35,9 +34,12 @@ export function mapFixturesToListRows(
     source = featured.length > 0 ? featured : items;
   }
 
-  return source.slice(0, limit).map((item) => {
+  const capped = opts?.limit != null ? source.slice(0, opts.limit) : source;
+  return capped.map((item) => {
     const homeGoals = item.goals.home ?? item.score?.fulltime?.home ?? null;
     const awayGoals = item.goals.away ?? item.score?.fulltime?.away ?? null;
+    const ph = item.score?.penalty?.home;
+    const pa = item.score?.penalty?.away;
     return {
       matchExternalId: String(item.fixture.id),
       leagueExternalId: String(item.league.id),
@@ -49,7 +51,13 @@ export function mapFixturesToListRows(
       status: item.fixture.status.short,
       score:
         homeGoals != null && awayGoals != null
-          ? { home: homeGoals, away: awayGoals }
+          ? {
+              home: homeGoals,
+              away: awayGoals,
+              ...(ph != null && pa != null
+                ? { penaltyHome: ph, penaltyAway: pa }
+                : {}),
+            }
           : undefined,
       minute: item.fixture.status.elapsed ?? undefined,
       homeName: item.teams.home.name,

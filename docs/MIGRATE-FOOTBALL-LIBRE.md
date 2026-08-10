@@ -107,6 +107,7 @@ You do **not** need new player routes for a basic player profile hub:
 | Transfers | `GET /v1/players/by-external/{playerId}/transfers` |
 | Trophies | `GET /v1/players/by-external/{playerId}/trophies` |
 | Sidelined / injury history | `GET /v1/players/by-external/{playerId}/sidelined` |
+| Search (team / league / player) | `GET /v1/search?q={text}` (min 3 chars) |
 | Link from lineup / leaders | Use `playerId` UUID on events/lineups/leaders → `GET /v1/players/{uuid}` |
 | Resolve UUID → upstream id | `GET /v1/ids/{internalId}` → `{ internalId, externalId }` |
 
@@ -114,7 +115,7 @@ You do **not** need new player routes for a basic player profile hub:
 
 - Player **season** statistics (goals/apps by league-season) — not a dedicated public route yet.
 - Player **career** / multi-season history aggregate — not a dedicated route yet.
-- Player search / catalog listing — not exposed; enter via squad, lineup, or leaders.
+- ~~Player search / catalog listing~~ — use `GET /v1/search?q=` (teams, competitions, players).
 
 If your website player page needs season stats, say so and we can add e.g.  
 `GET /v1/players/by-external/{playerId}/statistics/{leagueId}/{seasonYear}` behind the same lifecycle rules.

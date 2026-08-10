@@ -4,285 +4,352 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../data/providers.dart';
+import '../../data/feed_providers.dart';
+import '../../data/models.dart';
 import '../../data/repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
 import '../../widgets/match_widgets.dart';
 import '../../widgets/offline_retry.dart';
 
-enum HomeDateTab { yesterday, today, tomorrow }
-enum HomeFilter { all, live }
-
-final homeDateTabProvider =
-    NotifierProvider<HomeDateTabNotifier, HomeDateTab>(HomeDateTabNotifier.new);
-
-class HomeDateTabNotifier extends Notifier<HomeDateTab> {
-  @override
-  HomeDateTab build() => HomeDateTab.today;
-  void set(HomeDateTab t) => state = t;
-}
-
-final homeFilterProvider =
-    NotifierProvider<HomeFilterNotifier, HomeFilter>(HomeFilterNotifier.new);
-
-class HomeFilterNotifier extends Notifier<HomeFilter> {
-  @override
-  HomeFilter build() => HomeFilter.all;
-  void set(HomeFilter f) => state = f;
-}
-
-final homeFeedProvider = FutureProvider.autoDispose
-    .family<List<LeagueGroupVm>, (HomeDateTab, HomeFilter)>((ref, args) async {
-  final tab = args.$1;
-  final filter = args.$2;
-  final now = DateTime.now();
-  final day = switch (tab) {
-    HomeDateTab.yesterday => now.subtract(const Duration(days: 1)),
-    HomeDateTab.today => now,
-    HomeDateTab.tomorrow => now.add(const Duration(days: 1)),
-  };
-  final liveOnly = filter == HomeFilter.live;
-  // Today / live filter: bypass local cache and poll while visible.
-  if (liveOnly) {
-    final timer = Timer(const Duration(seconds: 5), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(timer.cancel);
-  } else if (tab == HomeDateTab.today) {
-    final timer = Timer(const Duration(minutes: 5), () {
-      ref.invalidateSelf();
-    });
-    ref.onDispose(timer.cancel);
-  }
-  return ref.read(footballRepositoryProvider).homeFeed(
-        day: day,
-        liveOnly: liveOnly,
-        forceRefresh: liveOnly || tab == HomeDateTab.today,
-      );
-});
-
-class HomeScreen extends ConsumerWidget {
+/// Matches tab: Finished · Upcoming · Live (+ date scroller for Finished/Upcoming).
+/// Live scores come from [liveMatchesProvider]; day lists from [dayMatchesViewProvider].
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late DateTime _selectedDate;
+  late ScrollController _dateScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Finished · Upcoming · Live
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 1);
+    _selectedDate = DateTime.now();
+    _dateScrollController = ScrollController(initialScrollOffset: 7 * 48.0);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _dateScrollController.dispose();
+    super.dispose();
+  }
+
+  String get _dateString => DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+  @override
+  Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final dateTab = ref.watch(homeDateTabProvider);
-    final filter = ref.watch(homeFilterProvider);
-    final async = ref.watch(homeFeedProvider((dateTab, filter)));
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       children: [
-        PlAppBar(
-          onSearch: () => context.push('/search'),
-        ),
-        Container(
-          color: dark ? PlColors.darkBackground.withValues(alpha: 0.95) : null,
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  for (final t in HomeDateTab.values)
-                    Expanded(
-                      child: InkWell(
-                        onTap: () =>
-                            ref.read(homeDateTabProvider.notifier).set(t),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !dark && dateTab == t
-                                ? PlColors.lightOnSurface
-                                : null,
-                            border: Border(
-                              bottom: BorderSide(
-                                color: dark && dateTab == t
-                                    ? PlColors.electricGreen
-                                    : (!dark && dateTab == t
-                                        ? PlColors.lightOnSurface
-                                        : Colors.transparent),
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            t.name.toUpperCase(),
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12,
-                              letterSpacing: 1,
-                              fontWeight: FontWeight.w500,
-                              color: dateTab == t
-                                  ? (dark
-                                      ? PlColors.electricGreen
-                                      : Colors.white)
-                                  : (dark
-                                      ? PlColors.darkOnSurfaceVariant
-                                      : PlColors.lightOnSurfaceVariant),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _FilterBtn(
-                        label: 'UPCOMING / FINISHED',
-                        active: filter == HomeFilter.all,
-                        onTap: () => ref
-                            .read(homeFilterProvider.notifier)
-                            .set(HomeFilter.all),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: _FilterBtn(
-                        label: 'LIVE',
-                        active: filter == HomeFilter.live,
-                        live: true,
-                        onTap: () => ref
-                            .read(homeFilterProvider.notifier)
-                            .set(HomeFilter.live),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        const PlAppBar(),
+        // Date applies to Finished / Upcoming; Live is always now.
+        if (_tabController.index != 2)
+          ColoredBox(
+            color: dark ? PlColors.darkSurfaceLow : PlColors.lightSurfaceHigh,
+            child: _buildDateScroller(dark, l10n),
+          ),
+        Material(
+          color: dark ? PlColors.darkBackground : PlColors.lightSurface,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            indicatorColor: PlColors.electricGreen,
+            labelColor: dark ? PlColors.electricGreen : PlColors.lightOnSurface,
+            unselectedLabelColor: dark
+                ? PlColors.darkOnSurfaceVariant
+                : PlColors.lightOnSurfaceVariant,
+            labelStyle: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+            tabs: [
+              Tab(text: l10n.finishedTab.toUpperCase()),
+              Tab(text: l10n.upcomingTab.toUpperCase()),
+              Tab(text: l10n.live.toUpperCase()),
             ],
           ),
         ),
         Expanded(
-          child: async.when(
-            skipLoadingOnReload: true,
-            skipLoadingOnRefresh: true,
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: PlColors.electricGreen),
-            ),
-            error: (e, _) => OfflineRetryPane(
-              error: e,
-              onRetry: () =>
-                  ref.invalidate(homeFeedProvider((dateTab, filter))),
-            ),
-            data: (groups) {
-              if (groups.isEmpty) {
-                return Center(
-                  child: Text(
-                    'NO MATCHES',
-                    style: GoogleFonts.jetBrainsMono(
-                      letterSpacing: 2,
-                      color: PlColors.darkOnSurfaceVariant,
-                    ),
-                  ),
-                );
-              }
-              return RefreshIndicator(
-                color: PlColors.electricGreen,
-                onRefresh: () async =>
-                    ref.invalidate(homeFeedProvider((dateTab, filter))),
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                  itemCount: groups.length,
-                  itemBuilder: (context, i) {
-                    final g = groups[i];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          LeagueSectionHeader(
-                            title: g.competition.name,
-                            onTap: () {},
-                          ),
-                          const SizedBox(height: 8),
-                          for (final m in g.matches)
-                            MatchListCard(
-                              card: m,
-                              onTap: () =>
-                                  context.push('/match/${m.match.id}'),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _DayPhaseTab(
+                date: _dateString,
+                emptyMessage: l10n.noFinishedMatches,
+                predicate: (m) => m.isFinished,
+              ),
+              _DayPhaseTab(
+                date: _dateString,
+                emptyMessage: l10n.noUpcomingMatches,
+                predicate: (m) => m.isUpcoming,
+              ),
+              const _LiveMatchesTab(),
+            ],
           ),
         ),
       ],
     );
   }
-}
 
-class _FilterBtn extends StatelessWidget {
-  const _FilterBtn({
-    required this.label,
-    required this.active,
-    required this.onTap,
-    this.live = false,
-  });
+  Widget _buildDateScroller(bool dark, AppLocalizations l10n) {
+    final now = DateTime.now();
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 15,
+        controller: _dateScrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        itemBuilder: (context, index) {
+          final date = now.subtract(Duration(days: 7 - index));
+          final isSelected = date.year == _selectedDate.year &&
+              date.month == _selectedDate.month &&
+              date.day == _selectedDate.day;
+          final isToday = date.year == now.year &&
+              date.month == now.month &&
+              date.day == now.day;
 
-  final String label;
-  final bool active;
-  final bool live;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final bg = active
-        ? PlColors.electricGreen
-        : (dark ? PlColors.darkSurfaceContainer : PlColors.lightSurfaceHigh);
-    final fg = active
-        ? PlColors.darkOnPrimaryContainer
-        : (dark ? PlColors.darkOnSurface : PlColors.lightOnSurface);
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          border: Border.all(
-            color: active
-                ? PlColors.electricGreen
-                : (dark ? PlColors.darkBorder : PlColors.lightBorder),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (live && active) ...[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.black,
-                  shape: BoxShape.circle,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Material(
+              color: isSelected
+                  ? PlColors.electricGreen
+                  : (dark ? PlColors.darkSurfaceContainer : PlColors.lightSurface),
+              child: InkWell(
+                onTap: () => setState(() => _selectedDate = date),
+                child: SizedBox(
+                  width: 40,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        isToday
+                            ? l10n.today
+                            : DateFormat('EEE').format(date).toUpperCase(),
+                        style: GoogleFonts.jetBrainsMono(
+                          color: isSelected
+                              ? Colors.black
+                              : (dark
+                                  ? PlColors.darkOnSurfaceVariant
+                                  : PlColors.lightOnSurfaceVariant),
+                          fontSize: 7,
+                          letterSpacing: 0.4,
+                          height: 1,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('d').format(date),
+                        style: GoogleFonts.jetBrainsMono(
+                          color: isSelected
+                              ? Colors.black
+                              : (dark
+                                  ? PlColors.darkOnSurface
+                                  : PlColors.lightOnSurface),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 11,
-                letterSpacing: 1,
-                fontWeight: FontWeight.w600,
-                color: fg,
-              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
 
+class _DayPhaseTab extends ConsumerWidget {
+  const _DayPhaseTab({
+    required this.date,
+    required this.emptyMessage,
+    required this.predicate,
+  });
+
+  final String date;
+  final String emptyMessage;
+  final bool Function(Match m) predicate;
+
+  Future<void> _reload(WidgetRef ref) async {
+    try {
+      await evictCalendarCacheForDate(ref, date);
+      await ref
+          .read(matchesProvider(date).notifier)
+          .refresh(force: true, forceUpstream: true);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(dayMatchesViewProvider(date));
+
+    return async.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: PlColors.electricGreen),
+      ),
+      error: (e, _) => OfflineRetryPane(
+        error: e,
+        onRetry: () => _reload(ref),
+      ),
+      data: (groups) {
+        final filtered = filterGroupsByPhase(groups, predicate: predicate);
+        if (filtered.isEmpty) {
+          return Center(
+            child: Text(
+              emptyMessage,
+              style: GoogleFonts.jetBrainsMono(
+                letterSpacing: 2,
+                color: PlColors.darkOnSurfaceVariant,
+              ),
+            ),
+          );
+        }
+        return RefreshIndicator(
+          color: PlColors.electricGreen,
+          onRefresh: () => _reload(ref),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            itemCount: filtered.length,
+            itemBuilder: (context, i) {
+              final g = filtered[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LeagueSectionHeader(
+                      title: g.competition.name,
+                      logoUrl: g.competition.logoUrl,
+                      onTap: () => context.push('/league/${g.competition.id}'),
+                    ),
+                    const SizedBox(height: 4),
+                    for (final m in g.matches)
+                      MatchListCard(
+                        card: m,
+                        onTap: () => context.push('/match/${m.match.id}'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LiveMatchesTab extends ConsumerWidget {
+  const _LiveMatchesTab();
+
+  Future<void> _reload(WidgetRef ref) async {
+    try {
+      await evictLiveCalendarCache(ref);
+      await ref.read(liveMatchesProvider.notifier).refreshIfNeeded(
+            force: true,
+            forceUpstream: true,
+          );
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final boardAsync = ref.watch(liveMatchesProvider);
+
+    return boardAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
+      loading: () => const Center(
+        child: CircularProgressIndicator(color: PlColors.electricGreen),
+      ),
+      error: (e, _) => OfflineRetryPane(
+        error: e,
+        onRetry: () => _reload(ref),
+      ),
+      data: (board) {
+        final cards = board.matches;
+        if (cards.isEmpty) {
+          final l10n = AppLocalizations.of(context)!;
+          return Center(
+            child: Text(
+              l10n.noLiveMatches.toUpperCase(),
+              style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
+            ),
+          );
+        }
+
+        // Group by competition for consistent list chrome.
+        final byComp = <String, List<MatchCardVm>>{};
+        final comps = <String, Competition>{};
+        for (final c in cards) {
+          byComp.putIfAbsent(c.competition.id, () => []).add(c);
+          comps[c.competition.id] = c.competition;
+        }
+        final groups = byComp.entries
+            .map(
+              (e) => LeagueGroupVm(
+                competition: comps[e.key]!,
+                matches: e.value,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.competition.name.compareTo(b.competition.name));
+
+        return RefreshIndicator(
+          color: PlColors.electricGreen,
+          onRefresh: () => _reload(ref),
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+            itemCount: groups.length,
+            itemBuilder: (context, i) {
+              final g = groups[i];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LeagueSectionHeader(
+                      title: g.competition.name,
+                      logoUrl: g.competition.logoUrl,
+                      onTap: () => context.push('/league/${g.competition.id}'),
+                    ),
+                    const SizedBox(height: 4),
+                    for (final m in g.matches)
+                      MatchListCard(
+                        card: m,
+                        onTap: () => context.push('/match/${m.match.id}'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../core/theme/app_colors.dart';
 import '../data/models.dart';
+import '../l10n/app_localizations.dart';
 
 bool looksOffline(Object error) {
   if (error is ApiException) {
@@ -34,6 +35,7 @@ class OfflineRetryPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final offline = looksOffline(error);
     return Center(
       child: Padding(
@@ -48,7 +50,9 @@ class OfflineRetryPane extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              offline ? 'YOU ARE OFFLINE' : 'COULD NOT LOAD',
+              offline
+                  ? l10n.noInternet.toUpperCase()
+                  : l10n.errorGeneric.toUpperCase(),
               textAlign: TextAlign.center,
               style: GoogleFonts.jetBrainsMono(
                 letterSpacing: 2,
@@ -58,9 +62,7 @@ class OfflineRetryPane extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              offline
-                  ? 'Check your connection, then try again.'
-                  : error.toString(),
+              offline ? l10n.noInternet : error.toString(),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 13,
@@ -74,19 +76,10 @@ class OfflineRetryPane extends StatelessWidget {
               onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
               label: Text(
-                'RETRY',
+                l10n.retry.toUpperCase(),
                 style: GoogleFonts.jetBrainsMono(
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                backgroundColor: PlColors.electricGreen,
-                foregroundColor: Colors.black,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
                 ),
               ),
             ),

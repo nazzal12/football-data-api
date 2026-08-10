@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/repository.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
 import '../../widgets/match_widgets.dart';
 import '../../widgets/offline_retry.dart';
@@ -37,6 +38,7 @@ class LeaguesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
     final async = ref.watch(competitionsCatalogProvider);
 
     return Column(
@@ -55,7 +57,8 @@ class LeaguesScreen extends ConsumerWidget {
               if (leagues.isEmpty) {
                 return Center(
                   child: Text(
-                    'NO LEAGUES YET — OPEN HOME FIRST',
+                    l10n.openHomeFirst.toUpperCase(),
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.jetBrainsMono(letterSpacing: 1),
                   ),
                 );
@@ -92,6 +95,7 @@ class LeaguesScreen extends ConsumerWidget {
                               label: league.name,
                               logoUrl: league.logoUrl,
                               size: 40,
+                              whiteBackdrop: true,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -226,11 +230,11 @@ class LeagueDetailScreen extends ConsumerWidget {
             ),
             Row(
               children: [
-                for (final entry in const [
-                  (0, 'TABLE'),
-                  (1, 'MATCHES'),
-                  (2, 'STATS'),
-                  (3, 'TEAMS'),
+                for (final entry in [
+                  (0, AppLocalizations.of(context)!.table),
+                  (1, AppLocalizations.of(context)!.matches),
+                  (2, AppLocalizations.of(context)!.stats),
+                  (3, AppLocalizations.of(context)!.searchSectionTeams),
                 ])
                   Expanded(
                     child: InkWell(
@@ -253,7 +257,7 @@ class LeagueDetailScreen extends ConsumerWidget {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          entry.$2,
+                          entry.$2.toUpperCase(),
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 11,
                             letterSpacing: 1,
@@ -397,45 +401,124 @@ class StandingsTableView extends StatelessWidget {
   }
 }
 
-class _MatchesPane extends ConsumerWidget {
+class _MatchesPane extends ConsumerStatefulWidget {
   const _MatchesPane({required this.competitionId});
   final String competitionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(competitionMatchesProvider(competitionId));
-    return async.when(
-      skipLoadingOnReload: true,
-      loading: () => const Center(
-        child: CircularProgressIndicator(color: PlColors.electricGreen),
-      ),
-      error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Matches unavailable.\n$e',
-            textAlign: TextAlign.center,
+  ConsumerState<_MatchesPane> createState() => _MatchesPaneState();
+}
+
+class _MatchesPaneState extends ConsumerState<_MatchesPane>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabs;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this, initialIndex: 1);
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final async = ref.watch(competitionMatchesProvider(widget.competitionId));
+
+    return Column(
+      children: [
+        Material(
+          color: dark ? PlColors.darkBackground : PlColors.lightSurface,
+          child: TabBar(
+            controller: _tabs,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            indicatorColor: PlColors.electricGreen,
+            labelColor: dark ? PlColors.electricGreen : PlColors.lightOnSurface,
+            unselectedLabelColor: dark
+                ? PlColors.darkOnSurfaceVariant
+                : PlColors.lightOnSurfaceVariant,
+            labelStyle: GoogleFonts.jetBrainsMono(
+              fontSize: 10,
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w600,
+            ),
+            tabs: [
+              Tab(text: l10n.finishedTab.toUpperCase()),
+              Tab(text: l10n.upcomingTab.toUpperCase()),
+              Tab(text: l10n.live.toUpperCase()),
+            ],
           ),
         ),
-      ),
-      data: (cards) {
-        if (cards.isEmpty) {
-          return Center(
-            child: Text(
-              'NO MATCHES',
-              style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
+        Expanded(
+          child: async.when(
+            skipLoadingOnReload: true,
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: PlColors.electricGreen),
             ),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: cards.length,
-          itemBuilder: (context, i) => MatchListCard(
-            card: cards[i],
-            onTap: () => context.push('/match/${cards[i].match.id}'),
+            error: (e, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Matches unavailable.\n$e',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            data: (cards) {
+              return TabBarView(
+                controller: _tabs,
+                children: [
+                  _leaguePhaseList(
+                    context,
+                    cards.where((c) => c.match.isFinished).toList(),
+                    l10n.noFinishedMatches,
+                  ),
+                  _leaguePhaseList(
+                    context,
+                    cards.where((c) => c.match.isUpcoming).toList(),
+                    l10n.noUpcomingMatches,
+                  ),
+                  _leaguePhaseList(
+                    context,
+                    cards.where((c) => c.match.isLive).toList(),
+                    l10n.noLiveMatches,
+                  ),
+                ],
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  Widget _leaguePhaseList(
+    BuildContext context,
+    List<MatchCardVm> cards,
+    String empty,
+  ) {
+    if (cards.isEmpty) {
+      return Center(
+        child: Text(
+          empty.toUpperCase(),
+          style: GoogleFonts.jetBrainsMono(letterSpacing: 2),
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      itemCount: cards.length,
+      itemBuilder: (context, i) => MatchListCard(
+        card: cards[i],
+        onTap: () => context.push('/match/${cards[i].match.id}'),
+      ),
     );
   }
 }

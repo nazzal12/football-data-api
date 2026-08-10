@@ -9,6 +9,7 @@ import type {
 import {
   createId,
   err,
+  FEATURED_LEAGUE_EXTERNAL_IDS,
   notFoundError,
   ok,
   PROVIDER_FIXTURE_TIMEZONE,
@@ -37,6 +38,7 @@ import type {
   SeasonLeaders,
   SeasonRounds,
   SidelinedReport,
+  SearchResult,
   Squad,
   Standings,
   Team,
@@ -62,6 +64,7 @@ import {
   seasonLeadersSchema,
   seasonRoundsSchema,
   seasonSchema,
+  searchResultSchema,
   sidelinedReportSchema,
   squadSchema,
   standingsSchema,
@@ -81,6 +84,7 @@ import {
   liveListPolicy,
   tablePolicy,
   withLease,
+  type PolicyPack,
 } from "@football-api/lifecycle";
 import type {
   FootballProvider,
@@ -149,6 +153,8 @@ export type GetMatchListResult = {
   cacheHit: boolean;
   refreshed: boolean;
   cacheTtlSeconds: number;
+  /** Soft-expired: caller should `waitUntil` this without blocking the response. */
+  backgroundRefresh?: () => Promise<void>;
 };
 
 export type GetMatchEventsResult = {
@@ -286,6 +292,13 @@ export type GetSeasonRoundsResult = {
   cacheTtlSeconds: number;
 };
 
+export type GetSearchResult = {
+  search: SearchResult;
+  cacheHit: boolean;
+  refreshed: boolean;
+  cacheTtlSeconds: number;
+};
+
 export type GetInjuryReportResult = {
   injuries: InjuryReport;
   cacheHit: boolean;
@@ -316,22 +329,46 @@ export class Orchestrator {
   }
 
   async getMatch(request: Request, internalId: string): Promise<Result<GetMatchResult, AppError>> {
-    const cached = await this.deps.cache.match(request);
-    if (cached) {
-      const match = parseCanonical(matchSchema, await cached.json());
+    // Sub-resource callers (events/statistics/lineups) pass their own Request.
+    // Always key Cache API by the match URL so bodies never collide.
+    const cacheRequest = this.resourceCacheRequest(request, `/v1/matches/${internalId}`);
+    const respond = async (
+      match: Match,
+      opts: { cacheHit: boolean; refreshed: boolean; cacheTtlSeconds?: number },
+    ): Promise<Result<GetMatchResult, AppError>> => {
       const nowMs = this.deps.clock.nowMs();
-      const pastKickoffFuture =
-        match.phase === "future" && Date.parse(match.kickoffAt) <= nowMs;
-      if (!pastKickoffFuture && !matchEventsNeedDisplayNames(match)) {
-        const policy = policyFor("match", match.phase, nowMs, {
-          kickoffAtMs: Date.parse(match.kickoffAt),
-        });
-        return ok({
-          match,
-          cacheHit: true,
-          refreshed: false,
-          cacheTtlSeconds: policy.cacheTtlSeconds,
-        });
+      const coerced = coerceStaleLiveMatch(match, nowMs);
+      const policy = policyFor("match", coerced.phase, nowMs, {
+        kickoffAtMs: Date.parse(coerced.kickoffAt),
+      });
+      if (coerced.phase !== match.phase) {
+        // Drop stuck "live" from edge so later hits don't re-poison clients.
+        await this.fillCache(cacheRequest, coerced, policy.cacheTtlSeconds);
+      }
+      return ok({
+        match: coerced,
+        cacheHit: opts.cacheHit,
+        refreshed: opts.refreshed,
+        cacheTtlSeconds: opts.cacheTtlSeconds ?? policy.cacheTtlSeconds,
+      });
+    };
+
+    const cached = await this.deps.cache.match(cacheRequest);
+    if (cached) {
+      try {
+        const match = parseCanonical(matchSchema, await cached.json());
+        const nowMs = this.deps.clock.nowMs();
+        // Never short-circuit live from Cache API — CF/edge can hold bodies past
+        // max-age and clients then see a clock that jumps backward vs the live list.
+        if (match.phase !== "live") {
+          const pastKickoffFuture =
+            match.phase === "future" && Date.parse(match.kickoffAt) <= nowMs;
+          if (!pastKickoffFuture && !matchEventsNeedDisplayNames(match)) {
+            return respond(match, { cacheHit: true, refreshed: false });
+          }
+        }
+      } catch {
+        // Corrupt or wrong-typed edge entry — fall through to R2 / refresh.
       }
     }
 
@@ -341,7 +378,11 @@ export class Orchestrator {
     if (meta?.r2Key) {
       const bytes = await this.deps.objects.get(meta.r2Key);
       if (bytes) {
-        current = parseCanonical(matchSchema, JSON.parse(textDecoder.decode(bytes)));
+        try {
+          current = parseCanonical(matchSchema, JSON.parse(textDecoder.decode(bytes)));
+        } catch {
+          current = null;
+        }
       }
     }
 
@@ -385,54 +426,41 @@ export class Orchestrator {
 
     if (effectiveAction.type === "serve" && current) {
       if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
-        await this.fillCache(request, current, policy.cacheTtlSeconds);
+        await this.fillCache(cacheRequest, current, policy.cacheTtlSeconds);
       }
-      return ok({
-        match: current,
-        cacheHit: false,
-        refreshed: false,
-        cacheTtlSeconds: policy.cacheTtlSeconds,
-      });
+      return respond(current, { cacheHit: false, refreshed: false });
     }
 
     if (effectiveAction.type === "error") {
       if (current) {
-        return ok({
-          match: current,
-          cacheHit: false,
-          refreshed: false,
-          cacheTtlSeconds: policy.cacheTtlSeconds,
-        });
+        return respond(current, { cacheHit: false, refreshed: false });
       }
       return err(notFoundError("Match unavailable", { id: internalId }));
     }
 
     if (effectiveAction.type === "wait") {
       if (current) {
-        return ok({
-          match: current,
-          cacheHit: false,
-          refreshed: false,
-          cacheTtlSeconds: policy.cacheTtlSeconds,
-        });
+        return respond(current, { cacheHit: false, refreshed: false });
       }
       await new Promise((r) => setTimeout(r, 25));
       meta = await this.deps.meta.getJson<ObjectMetadata>(mKey);
       if (meta?.r2Key) {
         const bytes = await this.deps.objects.get(meta.r2Key);
         if (bytes) {
-          return ok({
-            match: parseCanonical(matchSchema, JSON.parse(textDecoder.decode(bytes))),
-            cacheHit: false,
-            refreshed: false,
-            cacheTtlSeconds: policy.cacheTtlSeconds,
-          });
+          try {
+            return respond(
+              parseCanonical(matchSchema, JSON.parse(textDecoder.decode(bytes))),
+              { cacheHit: false, refreshed: false },
+            );
+          } catch {
+            /* fall through */
+          }
         }
       }
       return err(notFoundError("Match refresh in progress", { id: internalId }));
     }
 
-    return this.refreshMatch(request, internalId, meta, current, policy, nowMs, mKey);
+    return this.refreshMatch(cacheRequest, internalId, meta, current, policy, nowMs, mKey);
   }
 
   async getTeam(request: Request, internalId: string): Promise<Result<GetTeamResult, AppError>> {
@@ -571,10 +599,13 @@ export class Orchestrator {
   /**
    * Match-list projection refresh-on-read.
    * Key format: `date:YYYY-MM-DD` (e.g. date:2024-08-16).
+   * Soft-expired lists with existing R2 data return immediately (SWR) and expose
+   * `backgroundRefresh` for the HTTP layer to `waitUntil`.
    */
   async getMatchListProjection(
     request: Request,
     key: string,
+    opts?: { forceRefresh?: boolean },
   ): Promise<Result<GetMatchListResult, AppError>> {
     const parsed = parseMatchListProjectionKey(key);
     if (!parsed) {
@@ -600,14 +631,22 @@ export class Orchestrator {
           ? dateListPolicy(racing)
           : tablePolicy(racing);
 
-    const cached = await this.deps.cache.match(request);
-    if (cached) {
-      return ok({
-        projection: parseCanonical(matchListProjectionSchema, await cached.json()),
-        cacheHit: true,
-        refreshed: false,
-        cacheTtlSeconds: policy.cacheTtlSeconds,
-      });
+    // Live lists must not be served from the edge Cache API alone — a HIT skips
+    // soft-TTL / rebuild and can pin multi-day-stale "live" cards forever.
+    if (!opts?.forceRefresh && parsed.kind !== "live") {
+      const cached = await this.deps.cache.match(request);
+      if (cached) {
+        try {
+          return ok({
+            projection: parseCanonical(matchListProjectionSchema, await cached.json()),
+            cacheHit: true,
+            refreshed: false,
+            cacheTtlSeconds: policy.cacheTtlSeconds,
+          });
+        } catch {
+          /* fall through */
+        }
+      }
     }
 
     const pKey = projectionKey("match_list", key);
@@ -639,21 +678,47 @@ export class Orchestrator {
       effectiveAction = { type: "refresh", swr: true, acquireLease: true };
     }
 
+    if (opts?.forceRefresh && isQuotaAvailable(quota)) {
+      effectiveAction = { type: "refresh", swr: false, acquireLease: true };
+    }
+
     if (effectiveAction.type === "serve" && current) {
-      if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
-        await this.fillCache(request, current, policy.cacheTtlSeconds);
+      if (parsed.kind === "live") {
+        const sanitized = sanitizeLiveProjection(current, nowMs);
+        const before = current.items?.length ?? current.matchIds.length;
+        const after = sanitized.items?.length ?? sanitized.matchIds.length;
+        // Stale snapshot filtered to empty/partial — rebuild from provider now.
+        if (after < before && isQuotaAvailable(quota)) {
+          effectiveAction = { type: "refresh", swr: false, acquireLease: true };
+        } else {
+          if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
+            await this.fillCache(request, sanitized, policy.cacheTtlSeconds);
+          }
+          return ok({
+            projection: sanitized,
+            cacheHit: false,
+            refreshed: false,
+            cacheTtlSeconds: policy.cacheTtlSeconds,
+          });
+        }
+      } else {
+        if ("fillCache" in effectiveAction && effectiveAction.fillCache) {
+          await this.fillCache(request, current, policy.cacheTtlSeconds);
+        }
+        return ok({
+          projection: current,
+          cacheHit: false,
+          refreshed: false,
+          cacheTtlSeconds: policy.cacheTtlSeconds,
+        });
       }
-      return ok({
-        projection: current,
-        cacheHit: false,
-        refreshed: false,
-        cacheTtlSeconds: policy.cacheTtlSeconds,
-      });
     }
 
     if ((effectiveAction.type === "error" || effectiveAction.type === "wait") && current) {
+      const projection =
+        parsed.kind === "live" ? sanitizeLiveProjection(current, nowMs) : current;
       return ok({
-        projection: current,
+        projection,
         cacheHit: false,
         refreshed: false,
         cacheTtlSeconds: policy.cacheTtlSeconds,
@@ -664,6 +729,48 @@ export class Orchestrator {
       return err(notFoundError("Match list projection unavailable", { key }));
     }
 
+    // Soft-expired but we have a projection: serve immediately, refresh in background.
+    // Exception: live lists — never SWR-serve potentially day-old cards; block on rebuild.
+    if (effectiveAction.swr && current && !opts?.forceRefresh && parsed.kind !== "live") {
+      await this.fillCache(request, current, policy.cacheTtlSeconds);
+      return ok({
+        projection: current,
+        cacheHit: false,
+        refreshed: false,
+        cacheTtlSeconds: policy.cacheTtlSeconds,
+        backgroundRefresh: () =>
+          this.rebuildMatchListProjection({
+            request,
+            key,
+            parsed,
+            policy,
+            meta,
+            current,
+          }).then(() => undefined),
+      });
+    }
+
+    return this.rebuildMatchListProjection({
+      request,
+      key,
+      parsed,
+      policy,
+      meta,
+      current,
+    });
+  }
+
+  private async rebuildMatchListProjection(args: {
+    request: Request;
+    key: string;
+    parsed: NonNullable<ReturnType<typeof parseMatchListProjectionKey>>;
+    policy: PolicyPack;
+    meta: ObjectMetadata | null;
+    current: MatchListProjection | null;
+  }): Promise<Result<GetMatchListResult, AppError>> {
+    const { request, key, parsed, policy, meta, current } = args;
+    const pKey = projectionKey("match_list", key);
+    const nowMs = this.deps.clock.nowMs();
     const owner = createId();
     const projectionId = meta?.objectId ?? createId();
     await this.deps.meta.putJson(
@@ -689,8 +796,12 @@ export class Orchestrator {
         }),
       );
       if (current) {
+        const projection =
+          parsed.kind === "live"
+            ? sanitizeLiveProjection(current, this.deps.clock.nowMs())
+            : current;
         return ok({
-          projection: current,
+          projection,
           cacheHit: false,
           refreshed: false,
           cacheTtlSeconds: policy.cacheTtlSeconds,
@@ -702,8 +813,9 @@ export class Orchestrator {
     const matchIds: string[] = [];
     const items: MatchListItem[] = [];
     try {
-      const capped = listed.value.slice(0, 60);
-      const chunkSize = 10;
+      // Soft ceiling guards Worker CPU/KV on extreme worldwide days; clients use items[].
+      const capped = listed.value.slice(0, 800);
+      const chunkSize = 32;
       for (let i = 0; i < capped.length; i += chunkSize) {
         const chunk = capped.slice(i, i + chunkSize);
         const built = await Promise.all(
@@ -716,31 +828,9 @@ export class Orchestrator {
             }
             const ids = await this.resolveListRowIds(row);
             if (!ids.ok) throw ids.error;
-            const { matchId, competitionId, homeTeamId, awayTeamId, seasonId } = ids.value;
-            const match: Match = {
-              schemaVersion: 1,
-              id: matchId,
-              seasonId,
-              competitionId,
-              phase: row.phase,
-              status: row.status,
-              kickoffAt: row.kickoffAt,
-              homeTeamId,
-              awayTeamId,
-              score: row.score,
-              minute: row.minute,
-              events: [],
-              lineups: [],
-            };
-            // Warm R2 for cards — never overwrite finished/historical snapshots.
-            await this.persistMatchSnapshot(matchId, match);
-            await this.persistTeamStub(homeTeamId, row.homeName, row.homeLogoUrl);
-            await this.persistTeamStub(awayTeamId, row.awayName, row.awayLogoUrl);
-            await this.persistCompetitionStub(
-              competitionId,
-              row.leagueName,
-              row.leagueLogoUrl,
-            );
+            const { matchId, competitionId, homeTeamId, awayTeamId } = ids.value;
+            // Skip R2 stub warm on list refresh — card fields live on the projection item.
+            // Detail routes hydrate snapshots on demand; cron warms featured leagues.
             const item: MatchListItem = {
               matchId,
               competitionId,
@@ -757,6 +847,10 @@ export class Orchestrator {
               awayLogoUrl: row.awayLogoUrl,
               competitionName: row.leagueName,
               competitionLogoUrl: row.leagueLogoUrl,
+              externalId: row.matchExternalId,
+              homeExternalId: row.homeTeamExternalId,
+              awayExternalId: row.awayTeamExternalId,
+              competitionExternalId: row.leagueExternalId,
             };
             return { matchId, item };
           }),
@@ -765,6 +859,51 @@ export class Orchestrator {
           matchIds.push(row.matchId);
           if (row.item) items.push(row.item);
         }
+
+        // Featured leagues first so clients don't rely solely on local sort.
+        const featured = FEATURED_LEAGUE_EXTERNAL_IDS as readonly string[];
+        const demoted = (name?: string | null) => {
+          const n = (name ?? "").toLowerCase();
+          return (
+            n.includes("friendly") ||
+            n.includes("friendlies") ||
+            n.includes("amistoso") ||
+            n.includes("amistosos")
+          );
+        };
+        items.sort((a, b) => {
+          const aDemoted = demoted(a.competitionName);
+          const bDemoted = demoted(b.competitionName);
+          if (aDemoted !== bDemoted) return aDemoted ? 1 : -1;
+          const ai = a.competitionExternalId
+            ? featured.indexOf(a.competitionExternalId)
+            : -1;
+          const bi = b.competitionExternalId
+            ? featured.indexOf(b.competitionExternalId)
+            : -1;
+          const ar = ai >= 0 ? ai : featured.length + 1;
+          const br = bi >= 0 ? bi : featured.length + 1;
+          if (ar !== br) return ar - br;
+          return Date.parse(a.kickoffAt) - Date.parse(b.kickoffAt);
+        });
+        matchIds.length = 0;
+        matchIds.push(...items.map((i) => i.matchId));
+      }
+
+      // Live: drop absurd leftovers (finished games stuck as live from a bad snapshot).
+      if (parsed.kind === "live") {
+        const now = this.deps.clock.nowMs();
+        const kept: MatchListItem[] = [];
+        const keptIds: string[] = [];
+        for (const item of items) {
+          if (!isPlausibleLiveListItem(item, now)) continue;
+          kept.push(item);
+          keptIds.push(item.matchId);
+        }
+        items.length = 0;
+        items.push(...kept);
+        matchIds.length = 0;
+        matchIds.push(...keptIds);
       }
     } catch (cause) {
       if (cause && typeof cause === "object" && "code" in cause) {
@@ -847,7 +986,18 @@ export class Orchestrator {
       return err(notFoundError("No external id mapping for match", { id: matchId }));
     }
     const events = await this.deps.provider.getMatchEvents(externalId);
-    if (!events.ok) return events;
+    if (!events.ok) {
+      // Soft-serve snapshot events (or empty) instead of 502 — clients otherwise
+      // hammer retries and burn the rest of the quota while live list stays healthy.
+      const cached = loaded.value.match.events;
+      return ok({
+        matchId,
+        events: cached,
+        cacheHit: true,
+        refreshed: false,
+        cacheTtlSeconds: Math.min(15, loaded.value.cacheTtlSeconds || 5),
+      });
+    }
     const next = { ...loaded.value.match, events: events.value };
     await this.persistMatchSnapshot(matchId, next);
     return ok({
@@ -908,7 +1058,9 @@ export class Orchestrator {
     if (!externalId) {
       return err(notFoundError("No external id mapping for match", { id: matchId }));
     }
-    const statsId = await this.ensureExternal("statistics", externalId);
+    // Prefixed external key avoids colliding with other "statistics" objects and
+    // bypasses any corrupt R2 blobs previously stored under the bare fixture id.
+    const statsId = await this.ensureExternal("statistics", `matchstats:${externalId}`);
     if (!statsId.ok) return statsId;
     const result = await this.loadStaticResource({
       request,
@@ -918,7 +1070,8 @@ export class Orchestrator {
       freshnessClass: "table",
       label: "Match statistics",
       matchPhase: matchLoaded.value.match.phase,
-      fetch: (id, ext) => this.deps.provider.getMatchStatistics!(id, matchId, ext),
+      // Always pass the fixture id upstream — not the prefixed statistics key.
+      fetch: (id, _ext) => this.deps.provider.getMatchStatistics!(id, matchId, externalId),
     });
     if (!result.ok) return result;
     return ok({
@@ -1495,6 +1648,71 @@ export class Orchestrator {
     });
   }
 
+  /**
+   * Live text search — not R2-persisted. Binds UUIDs for each hit so clients can
+   * navigate with internal ids immediately.
+   */
+  async search(
+    request: Request,
+    query: string,
+  ): Promise<Result<GetSearchResult, AppError>> {
+    const q = query.trim();
+    if (q.length < 3) {
+      return err(validationError("Search query must be at least 3 characters", { query: q }));
+    }
+    if (!this.deps.provider.search) {
+      return err(notFoundError("Search provider not implemented"));
+    }
+
+    const cached = await this.deps.cache.match(request);
+    if (cached) {
+      const search = parseCanonical(searchResultSchema, await cached.json());
+      return ok({
+        search,
+        cacheHit: true,
+        refreshed: false,
+        cacheTtlSeconds: 300,
+      });
+    }
+
+    const listed = await this.deps.provider.search(q);
+    const providerQuota = this.deps.provider.getQuota?.();
+    if (providerQuota) {
+      await this.deps.meta.putJson(quotaKey(this.deps.provider.name), providerQuota);
+    }
+    if (!listed.ok) return listed;
+
+    const results = [];
+    for (const hit of listed.value) {
+      const externalType =
+        hit.type === "competition" ? "competition" : hit.type === "team" ? "team" : "player";
+      const id = await this.ensureExternal(externalType, hit.externalId);
+      if (!id.ok) continue;
+      results.push({
+        type: hit.type,
+        id: id.value,
+        externalId: hit.externalId,
+        displayName: hit.displayName,
+        ...(hit.logoUrl ? { logoUrl: hit.logoUrl } : {}),
+      });
+    }
+
+    const search = parseCanonical(searchResultSchema, {
+      schemaVersion: 1,
+      id: createId(),
+      query: q,
+      results,
+    });
+
+    await this.fillCache(request, search, 300);
+    return ok({
+      search,
+      cacheHit: false,
+      refreshed: true,
+      cacheTtlSeconds: 300,
+    });
+  }
+
   private async listProjectionRows(
     parsed:
       | { kind: "date"; date: string }
@@ -1586,18 +1804,17 @@ export class Orchestrator {
       AppError
     >
   > {
-    const matchId = await this.ensureExternal("match", row.matchExternalId);
+    const [matchId, competitionId, homeTeamId, awayTeamId, seasonId] = await Promise.all([
+      this.ensureExternal("match", row.matchExternalId),
+      this.ensureExternal("competition", row.leagueExternalId),
+      this.ensureExternal("team", row.homeTeamExternalId),
+      this.ensureExternal("team", row.awayTeamExternalId),
+      this.ensureExternal("season", `${row.leagueExternalId}:${row.seasonYear}`),
+    ]);
     if (!matchId.ok) return matchId;
-    const competitionId = await this.ensureExternal("competition", row.leagueExternalId);
     if (!competitionId.ok) return competitionId;
-    const homeTeamId = await this.ensureExternal("team", row.homeTeamExternalId);
     if (!homeTeamId.ok) return homeTeamId;
-    const awayTeamId = await this.ensureExternal("team", row.awayTeamExternalId);
     if (!awayTeamId.ok) return awayTeamId;
-    const seasonId = await this.ensureExternal(
-      "season",
-      `${row.leagueExternalId}:${row.seasonYear}`,
-    );
     if (!seasonId.ok) return seasonId;
     return ok({
       matchId: matchId.value,
@@ -1805,19 +2022,23 @@ export class Orchestrator {
     const cached =
       args.matchPhase === "live" ? undefined : await this.deps.cache.match(args.request);
     if (cached) {
-      const data = parseCanonical(args.schema, await cached.json());
-      const missingLogo =
-        (args.objectType === "team" || args.objectType === "competition") &&
-        !(data as { logoUrl?: string }).logoUrl;
-      const missingLeaderNames =
-        args.objectType === "leaders" && leadersNeedDisplayNames(data);
-      if (!missingLogo && !missingLeaderNames) {
-        return ok({
-          data,
-          cacheHit: true,
-          refreshed: false,
-          cacheTtlSeconds: policy.cacheTtlSeconds,
-        });
+      try {
+        const data = parseCanonical(args.schema, await cached.json());
+        const missingLogo =
+          (args.objectType === "team" || args.objectType === "competition") &&
+          !(data as { logoUrl?: string }).logoUrl;
+        const missingLeaderNames =
+          args.objectType === "leaders" && leadersNeedDisplayNames(data);
+        if (!missingLogo && !missingLeaderNames) {
+          return ok({
+            data,
+            cacheHit: true,
+            refreshed: false,
+            cacheTtlSeconds: policy.cacheTtlSeconds,
+          });
+        }
+      } catch {
+        // Stale/corrupt edge cache — fall through to R2 / refresh.
       }
     }
 
@@ -1827,7 +2048,11 @@ export class Orchestrator {
     if (meta?.r2Key) {
       const bytes = await this.deps.objects.get(meta.r2Key);
       if (bytes) {
-        current = parseCanonical(args.schema, JSON.parse(textDecoder.decode(bytes)));
+        try {
+          current = parseCanonical(args.schema, JSON.parse(textDecoder.decode(bytes)));
+        } catch {
+          current = null;
+        }
       }
     }
     const quota = await this.deps.meta.getJson<QuotaSnapshot>(quotaKey(this.deps.provider.name));
@@ -1995,8 +2220,9 @@ export class Orchestrator {
     const afterLease = await this.deps.meta.getJson<ObjectMetadata>(mKey);
     if (afterLease?.leaseOwner && afterLease.leaseOwner !== owner) {
       if (current) {
+        const coerced = coerceStaleLiveMatch(current, this.deps.clock.nowMs());
         return ok({
-          match: current,
+          match: coerced,
           cacheHit: false,
           refreshed: false,
           cacheTtlSeconds: policy.cacheTtlSeconds,
@@ -2040,8 +2266,9 @@ export class Orchestrator {
         }),
       );
       if (current) {
+        const coerced = coerceStaleLiveMatch(current, this.deps.clock.nowMs());
         return ok({
-          match: current,
+          match: coerced,
           cacheHit: false,
           refreshed: false,
           cacheTtlSeconds: policy.cacheTtlSeconds,
@@ -2050,7 +2277,7 @@ export class Orchestrator {
       return err(result.error);
     }
 
-    const match = result.value;
+    const match = coerceStaleLiveMatch(result.value, this.deps.clock.nowMs());
     // Policy must follow the *refreshed* phase (future→live must become 5s, not 5h).
     const refreshedAt = this.deps.clock.nowMs();
     const nextPolicy = policyFor("match", match.phase, refreshedAt, {
@@ -2110,6 +2337,14 @@ export class Orchestrator {
       }),
     );
   }
+
+  /** Rewrite pathname so Cache API keys stay on the canonical resource URL. */
+  private resourceCacheRequest(request: Request, pathname: string): Request {
+    const url = new URL(request.url);
+    url.pathname = pathname;
+    url.search = "";
+    return new Request(url.toString(), { method: "GET", headers: request.headers });
+  }
 }
 
 function isQuotaAvailable(quota: QuotaSnapshot | null): boolean {
@@ -2117,6 +2352,53 @@ function isQuotaAvailable(quota: QuotaSnapshot | null): boolean {
   if (quota.dailyRemaining !== undefined && quota.dailyRemaining <= 0) return false;
   if (quota.minuteRemaining !== undefined && quota.minuteRemaining <= 0) return false;
   return true;
+}
+
+/** Kickoff window for a still-live fixture (pre-kick buffer + FT/ET/pens). */
+const LIVE_KICKOFF_MAX_AGE_MS = 5 * 60 * 60 * 1000;
+const LIVE_KICKOFF_FUTURE_SLACK_MS = 15 * 60 * 1000;
+
+function isPlausibleLiveListItem(
+  item: Pick<MatchListItem, "phase" | "kickoffAt">,
+  nowMs: number,
+): boolean {
+  if (item.phase !== "live") return false;
+  const kickoffMs = Date.parse(item.kickoffAt);
+  if (Number.isNaN(kickoffMs)) return false;
+  const age = nowMs - kickoffMs;
+  return age >= -LIVE_KICKOFF_FUTURE_SLACK_MS && age <= LIVE_KICKOFF_MAX_AGE_MS;
+}
+
+/** Coerce stuck live match snapshots past the plausible window to finished. */
+function coerceStaleLiveMatch(match: Match, nowMs: number): Match {
+  if (match.phase !== "live") return match;
+  if (isPlausibleLiveListItem(match, nowMs)) return match;
+  const raw = match.status.toUpperCase();
+  const finishedStatus =
+    raw === "P" || raw === "PEN" || raw.includes("PEN")
+      ? "PEN"
+      : raw === "ET" || raw === "BT" || raw === "AET"
+        ? "AET"
+        : "FT";
+  return {
+    ...match,
+    phase: "finished",
+    status: finishedStatus,
+    minute:
+      match.minute ??
+      (finishedStatus === "PEN" || finishedStatus === "AET" ? 120 : 90),
+  };
+}
+
+function sanitizeLiveProjection(
+  projection: MatchListProjection,
+  nowMs: number,
+): MatchListProjection {
+  const items = (projection.items ?? []).filter((item) =>
+    isPlausibleLiveListItem(item, nowMs),
+  );
+  const matchIds = items.map((i) => i.matchId);
+  return { ...projection, items, matchIds };
 }
 
 /** YYYY-MM-DD in the fixture timezone (not UTC). */

@@ -32,6 +32,7 @@ tags:
   - name: H2H
   - name: Countries
   - name: Venues
+  - name: Search
   - name: Admin
 
 paths:
@@ -758,6 +759,26 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /v1/search:
+    get:
+      tags: [Search]
+      summary: Search teams, competitions, and players
+      operationId: search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search text (minimum 3 characters)
+          schema: { type: string, minLength: 3 }
+      responses:
+        "200":
+          description: SearchResult
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchResult" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "502": { $ref: "#/components/responses/Problem" }
+
   /v1/id-maps:
     put:
       tags: [Admin]
@@ -944,6 +965,27 @@ components:
         city: { type: string }
         countryId: { type: string, format: uuid }
         capacity: { type: integer }
+
+    SearchHit:
+      type: object
+      required: [type, id, externalId, displayName]
+      properties:
+        type: { type: string, enum: [team, competition, player] }
+        id: { type: string, format: uuid }
+        externalId: { type: string }
+        displayName: { type: string }
+        logoUrl: { type: string, format: uri }
+
+    SearchResult:
+      type: object
+      required: [schemaVersion, id, query, results]
+      properties:
+        schemaVersion: { type: integer, const: 1 }
+        id: { type: string, format: uuid }
+        query: { type: string }
+        results:
+          type: array
+          items: { $ref: "#/components/schemas/SearchHit" }
 
     MatchEvent:
       type: object

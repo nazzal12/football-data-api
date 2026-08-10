@@ -9,6 +9,16 @@ import { createServices } from "./wiring.js";
 export const PROVIDER_TIMEZONE = PROVIDER_FIXTURE_TIMEZONE;
 
 const PUBLIC_ORIGIN = "https://football-api.nazzalkausar12.workers.dev";
+export const WARMUP_LAST_KEY = "warmup:last";
+
+export type WarmupMode = "dates" | "catalog" | "all";
+
+export type WarmupLast = {
+  at: string;
+  mode: WarmupMode;
+  steps: number;
+  ok: boolean;
+};
 
 function syntheticRequest(path: string): Request {
   return new Request(`${PUBLIC_ORIGIN}${path}`, {
@@ -38,15 +48,17 @@ function shiftYmd(ymd: string, deltaDays: number): string {
 }
 
 /**
- * Catalog / date-list warmup only.
- * - Does NOT touch live projections or live matches (user-driven, 5s TTL).
- * - Date lists may include finished fixtures in `items`, but orchestrator will not
- *   overwrite finished/historical match objects once frozen.
+ * Catalog / date-list warmup.
+ * - `dates`: yesterday/today/tomorrow projections (every 5 min cron).
+ * - `catalog`: featured competitions / standings / teams (every 5 h cron).
+ * - Does NOT touch live projections (user-driven, 5s TTL).
  */
 export async function runWarmup(
   env: WorkerBindings,
-): Promise<{ ok: true; steps: string[] }> {
-  const { orchestrator, logger } = createServices(env);
+  opts?: { mode?: WarmupMode },
+): Promise<{ ok: true; steps: string[]; mode: WarmupMode }> {
+  const mode: WarmupMode = opts?.mode ?? "all";
+  const { orchestrator, logger, meta } = createServices(env);
   const steps: string[] = [];
   const nowMs = Date.now();
 
@@ -57,6 +69,7 @@ export async function runWarmup(
     const result = await orchestrator.getMatchListProjection(
       syntheticRequest(httpPath),
       key,
+      { forceRefresh: true },
     );
     if (!result.ok) {
       steps.push(`projection ${key} FAIL ${result.error.code}`);
@@ -68,59 +81,78 @@ export async function runWarmup(
     );
   };
 
-  const todayLatam = ymdInTimeZone(nowMs, PROVIDER_TIMEZONE);
-  for (const ymd of [
-    shiftYmd(todayLatam, -1),
-    todayLatam,
-    shiftYmd(todayLatam, 1),
-  ]) {
-    await warmProjection(`date:${ymd}`);
+  if (mode === "dates" || mode === "all") {
+    const todayLatam = ymdInTimeZone(nowMs, PROVIDER_TIMEZONE);
+    for (const ymd of [
+      shiftYmd(todayLatam, -1),
+      todayLatam,
+      shiftYmd(todayLatam, 1),
+    ]) {
+      await warmProjection(`date:${ymd}`);
+    }
   }
 
-  const seasonYear = (() => {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: PROVIDER_TIMEZONE,
-      year: "numeric",
-      month: "2-digit",
-    }).formatToParts(new Date(nowMs));
-    const year = Number(parts.find((p) => p.type === "year")?.value ?? "2026");
-    const month = Number(parts.find((p) => p.type === "month")?.value ?? "7");
-    return month >= 7 ? year : year - 1;
-  })();
+  if (mode === "catalog" || mode === "all") {
+    const seasonYear = (() => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: PROVIDER_TIMEZONE,
+        year: "numeric",
+        month: "2-digit",
+      }).formatToParts(new Date(nowMs));
+      const year = Number(parts.find((p) => p.type === "year")?.value ?? "2026");
+      const month = Number(parts.find((p) => p.type === "month")?.value ?? "7");
+      return month >= 7 ? year : year - 1;
+    })();
 
-  // Teams + tournaments (featured competitions + standings seed teams).
-  for (const leagueId of FEATURED_LEAGUE_EXTERNAL_IDS.slice(0, 10)) {
-    const path = `/v1/competitions/by-external/${leagueId}`;
-    const result = await orchestrator.getCompetitionByExternal(
-      syntheticRequest(path),
-      leagueId,
-    );
-    if (!result.ok) {
-      steps.push(`competition ${leagueId} FAIL`);
-      continue;
-    }
-    steps.push(`competition ${leagueId} ok`);
+    for (const leagueId of FEATURED_LEAGUE_EXTERNAL_IDS.slice(0, 10)) {
+      const path = `/v1/competitions/by-external/${leagueId}`;
+      const result = await orchestrator.getCompetitionByExternal(
+        syntheticRequest(path),
+        leagueId,
+      );
+      if (!result.ok) {
+        steps.push(`competition ${leagueId} FAIL`);
+        continue;
+      }
+      steps.push(`competition ${leagueId} ok`);
 
-    const standings = await orchestrator.getStandingsByExternal(
-      syntheticRequest(`/v1/standings/by-external/${leagueId}/${seasonYear}`),
-      `${leagueId}:${seasonYear}`,
-    );
-    if (!standings.ok) {
-      steps.push(`standings ${leagueId}/${seasonYear} FAIL`);
-    } else {
-      steps.push(`standings ${leagueId}/${seasonYear} ok`);
-      // Warm team stubs from table rows (logos/names) — static, not live.
-      for (const row of standings.value.standings.rows.slice(0, 16)) {
-        const teamPath = `/v1/teams/${row.teamId}`;
-        const team = await orchestrator.getTeam(
-          syntheticRequest(teamPath),
-          row.teamId,
-        );
-        if (team.ok) steps.push(`team ${row.teamId.slice(0, 8)} ok`);
+      const standings = await orchestrator.getStandingsByExternal(
+        syntheticRequest(`/v1/standings/by-external/${leagueId}/${seasonYear}`),
+        `${leagueId}:${seasonYear}`,
+      );
+      if (!standings.ok) {
+        steps.push(`standings ${leagueId}/${seasonYear} FAIL`);
+      } else {
+        steps.push(`standings ${leagueId}/${seasonYear} ok`);
+        for (const row of standings.value.standings.rows.slice(0, 16)) {
+          const teamPath = `/v1/teams/${row.teamId}`;
+          const team = await orchestrator.getTeam(
+            syntheticRequest(teamPath),
+            row.teamId,
+          );
+          if (team.ok) steps.push(`team ${row.teamId.slice(0, 8)} ok`);
+        }
       }
     }
   }
 
-  logger.info("warmup.done", { steps: steps.length });
-  return { ok: true, steps };
+  const last: WarmupLast = {
+    at: new Date(nowMs).toISOString(),
+    mode,
+    steps: steps.length,
+    ok: true,
+  };
+  await meta.putJson(WARMUP_LAST_KEY, last);
+
+  logger.info("warmup.done", { mode, steps: steps.length });
+  return { ok: true, steps, mode };
+}
+
+/** Map Cloudflare cron expression → warmup mode. */
+export function warmupModeForCron(cron: string): WarmupMode {
+  const normalized = cron.trim();
+  // Catalog tick (every 5 hours at :00).
+  if (normalized === "0 */5 * * *") return "catalog";
+  // Frequent date keep-warm (every 5 minutes).
+  return "dates";
 }

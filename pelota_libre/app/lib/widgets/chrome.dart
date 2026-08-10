@@ -9,11 +9,14 @@ class EntityMark extends StatelessWidget {
     required this.label,
     this.logoUrl,
     this.size = 24,
+    this.whiteBackdrop = false,
   });
 
   final String label;
   final String? logoUrl;
   final double size;
+  /// White plate behind logos so dark crests stay visible in dark mode.
+  final bool whiteBackdrop;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,9 @@ class EntityMark extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: dark ? PlColors.darkSurfaceHigh : PlColors.lightSurfaceHigh,
+        color: whiteBackdrop
+            ? Colors.white
+            : (dark ? PlColors.darkSurfaceHigh : PlColors.lightSurfaceHigh),
         border: Border.all(
           color: dark ? PlColors.darkBorder : PlColors.lightBorder,
         ),
@@ -41,39 +46,49 @@ class EntityMark extends StatelessWidget {
         style: GoogleFonts.jetBrainsMono(
           fontSize: size * 0.35,
           fontWeight: FontWeight.w600,
-          color: dark ? PlColors.darkOnSurface : PlColors.lightOnSurface,
+          color: dark && !whiteBackdrop
+              ? PlColors.darkOnSurface
+              : PlColors.lightOnSurface,
         ),
       ),
     );
     final url = logoUrl;
     if (url == null || url.isEmpty) return fallback;
-    return SizedBox(
+    final image = Image.network(
+      url,
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, _, _) => fallback,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return Center(
+          child: SizedBox(
+            width: size * 0.35,
+            height: size * 0.35,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: dark ? PlColors.electricGreen : PlColors.lightPrimary,
+            ),
+          ),
+        );
+      },
+    );
+    return Container(
       width: size,
       height: size,
-      child: Image.network(
-        url,
-        fit: BoxFit.contain,
-        gaplessPlayback: true,
-        filterQuality: FilterQuality.medium,
-        errorBuilder: (_, _, _) => fallback,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return SizedBox(
-            width: size,
-            height: size,
-            child: Center(
-              child: SizedBox(
-                width: size * 0.35,
-                height: size * 0.35,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: dark ? PlColors.electricGreen : PlColors.lightPrimary,
-                ),
-              ),
-            ),
-          );
-        },
+      padding: whiteBackdrop ? EdgeInsets.all(size * 0.08) : EdgeInsets.zero,
+      decoration: BoxDecoration(
+        color: whiteBackdrop
+            ? Colors.white
+            : Colors.transparent,
+        border: whiteBackdrop
+            ? Border.all(
+                color: dark ? PlColors.darkBorder : PlColors.lightBorder,
+              )
+            : null,
       ),
+      child: image,
     );
   }
 }
@@ -89,20 +104,20 @@ class PlAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
 
   @override
-  Size get preferredSize => const Size.fromHeight(56);
+  Size get preferredSize => const Size.fromHeight(44);
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final titleStyle = dark
         ? GoogleFonts.archivoNarrow(
-            fontSize: 22,
+            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: PlColors.electricGreen,
             letterSpacing: -0.5,
           )
         : GoogleFonts.anton(
-            fontSize: 22,
+            fontSize: 16,
             fontStyle: FontStyle.italic,
             color: PlColors.lightOnSurface,
             letterSpacing: -0.5,
@@ -110,8 +125,8 @@ class PlAppBar extends StatelessWidget implements PreferredSizeWidget {
     return Material(
       color: dark ? PlColors.darkBackground : PlColors.lightSurface,
       child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
@@ -125,6 +140,7 @@ class PlAppBar extends StatelessWidget implements PreferredSizeWidget {
             leading ??
                 Icon(
                   Icons.sports_soccer,
+                  size: 20,
                   color: dark ? PlColors.electricGreen : PlColors.lightPrimary,
                 ),
             Expanded(
@@ -136,6 +152,9 @@ class PlAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             IconButton(
               onPressed: onSearch,
+              iconSize: 20,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               icon: Icon(
                 Icons.search,
                 color: dark
@@ -155,17 +174,18 @@ class PlBottomNav extends StatelessWidget {
     super.key,
     required this.index,
     required this.onChanged,
+    required this.labels,
   });
 
   final int index;
   final ValueChanged<int> onChanged;
+  final List<String> labels;
 
-  static const _items = [
-    (Icons.home, 'HOME'),
-    (Icons.emoji_events, 'LEAGUES'),
-    (Icons.sensors, 'LIVE'),
-    (Icons.groups, 'TEAMS'),
-    (Icons.person, 'PROFILE'),
+  static const _icons = [
+    Icons.sports_soccer,
+    Icons.emoji_events,
+    Icons.search,
+    Icons.settings,
   ];
 
   @override
@@ -184,7 +204,7 @@ class PlBottomNav extends StatelessWidget {
       ),
       child: Row(
         children: [
-          for (var i = 0; i < _items.length; i++)
+          for (var i = 0; i < _icons.length; i++)
             Expanded(
               child: InkWell(
                 onTap: () => onChanged(i),
@@ -206,7 +226,7 @@ class PlBottomNav extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _items[i].$1,
+                        _icons[i],
                         size: 22,
                         color: index == i
                             ? (dark
@@ -218,7 +238,9 @@ class PlBottomNav extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _items[i].$2,
+                        labels[i].toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 10,
                           letterSpacing: 1,
@@ -244,31 +266,48 @@ class PlBottomNav extends StatelessWidget {
 }
 
 class LeagueSectionHeader extends StatelessWidget {
-  const LeagueSectionHeader({super.key, required this.title, this.onTap});
+  const LeagueSectionHeader({
+    super.key,
+    required this.title,
+    this.logoUrl,
+    this.onTap,
+  });
 
   final String title;
+  final String? logoUrl;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final mark = EntityMark(
+      label: title,
+      logoUrl: logoUrl,
+      size: 18,
+      whiteBackdrop: true,
+    );
+
     if (!dark) {
       return InkWell(
         onTap: onTap,
         child: Container(
           width: double.infinity,
           color: PlColors.lightOnSurface,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             children: [
-              const Icon(Icons.emoji_events, color: Colors.white, size: 18),
+              mark,
               const SizedBox(width: 8),
-              Text(
-                title.toUpperCase(),
-                style: GoogleFonts.anton(
-                  color: Colors.white,
-                  fontSize: 16,
-                  letterSpacing: 1,
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.anton(
+                    color: Colors.white,
+                    fontSize: 13,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ],
@@ -278,29 +317,26 @@ class LeagueSectionHeader extends StatelessWidget {
     }
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        color: PlColors.darkSurfaceLow,
         child: Row(
           children: [
-            Container(
-              width: 24,
-              height: 24,
-              color: PlColors.darkSurfaceContainer,
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.emoji_events,
-                size: 16,
-                color: PlColors.darkOnSurfaceVariant,
-              ),
-            ),
+            mark,
             const SizedBox(width: 8),
-            Text(
-              title.toUpperCase(),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 12,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w500,
-                color: PlColors.darkOnSurface,
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.w500,
+                  color: PlColors.darkOnSurface,
+                ),
               ),
             ),
           ],
