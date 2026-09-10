@@ -43,7 +43,7 @@ export function rewriteLogoToMediaProxy(
   const match = trimmed.match(
     /media\.api-sports\.io\/football\/(teams|leagues|players|venues)\/(\d+)\.png/i,
   );
-  if (match) {
+  if (match?.[1] && match[2]) {
     return publicMediaUrl(origin, match[1] as MediaKind, match[2]);
   }
 

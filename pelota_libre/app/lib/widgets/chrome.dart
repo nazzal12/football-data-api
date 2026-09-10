@@ -283,7 +283,7 @@ class LeagueSectionHeader extends StatelessWidget {
     final mark = EntityMark(
       label: title,
       logoUrl: logoUrl,
-      size: 18,
+      size: 26,
       whiteBackdrop: true,
     );
 
@@ -293,7 +293,7 @@ class LeagueSectionHeader extends StatelessWidget {
         child: Container(
           width: double.infinity,
           color: PlColors.lightOnSurface,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
               mark,
@@ -305,7 +305,7 @@ class LeagueSectionHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.anton(
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: 15,
                     letterSpacing: 1,
                   ),
                 ),
@@ -320,7 +320,7 @@ class LeagueSectionHeader extends StatelessWidget {
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         color: PlColors.darkSurfaceLow,
         child: Row(
           children: [
@@ -332,9 +332,9 @@ class LeagueSectionHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
+                  fontSize: 13,
                   letterSpacing: 1,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: PlColors.darkOnSurface,
                 ),
               ),

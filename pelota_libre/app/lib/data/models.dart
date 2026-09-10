@@ -320,6 +320,7 @@ class MatchListItem {
     this.awayLogoUrl,
     this.competitionName,
     this.competitionLogoUrl,
+    this.competitionExternalId,
   });
 
   final String matchId;
@@ -337,6 +338,7 @@ class MatchListItem {
   final String? awayLogoUrl;
   final String? competitionName;
   final String? competitionLogoUrl;
+  final String? competitionExternalId;
 
   factory MatchListItem.fromJson(Map<String, dynamic> j) => MatchListItem(
         matchId: j['matchId'] as String,
@@ -356,6 +358,7 @@ class MatchListItem {
         awayLogoUrl: j['awayLogoUrl'] as String?,
         competitionName: j['competitionName'] as String?,
         competitionLogoUrl: j['competitionLogoUrl'] as String?,
+        competitionExternalId: j['competitionExternalId'] as String?,
       );
 
   Match toMatch() => Match(

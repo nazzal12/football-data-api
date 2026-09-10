@@ -3,13 +3,19 @@ import {
   PROVIDER_FIXTURE_TIMEZONE,
 } from "@football-api/core";
 import type { WorkerBindings } from "./env.js";
-import { createServices } from "./wiring.js";
+import { createServices, type RuntimeEnv } from "./wiring.js";
 
 /** Latin America calendar for date-bucketed fixture lists (API-Football timezone). */
 export const PROVIDER_TIMEZONE = PROVIDER_FIXTURE_TIMEZONE;
 
-const PUBLIC_ORIGIN = "https://football-api.nazzalkausar12.workers.dev";
+const DEFAULT_PUBLIC_ORIGIN = "https://football-api.nazzalkausar12.workers.dev";
+let publicOrigin = DEFAULT_PUBLIC_ORIGIN;
 export const WARMUP_LAST_KEY = "warmup:last";
+
+/** Override synthetic request origin (Node staging / custom domain). */
+export function configureWarmupOrigin(origin: string): void {
+  publicOrigin = origin.replace(/\/$/, "") || DEFAULT_PUBLIC_ORIGIN;
+}
 
 export type WarmupMode = "dates" | "catalog" | "all";
 
@@ -21,7 +27,7 @@ export type WarmupLast = {
 };
 
 function syntheticRequest(path: string): Request {
-  return new Request(`${PUBLIC_ORIGIN}${path}`, {
+  return new Request(`${publicOrigin}${path}`, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -54,7 +60,7 @@ function shiftYmd(ymd: string, deltaDays: number): string {
  * - Does NOT touch live projections (user-driven, 5s TTL).
  */
 export async function runWarmup(
-  env: WorkerBindings,
+  env: WorkerBindings | RuntimeEnv,
   opts?: { mode?: WarmupMode },
 ): Promise<{ ok: true; steps: string[]; mode: WarmupMode }> {
   const mode: WarmupMode = opts?.mode ?? "all";

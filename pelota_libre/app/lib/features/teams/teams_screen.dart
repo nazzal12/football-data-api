@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
+import '../../core/match_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -358,7 +358,7 @@ class _TeamMatchTile extends StatelessWidget {
         ? 'FT'
         : m.isLive
             ? "${m.minute ?? ''}'"
-            : DateFormat('EEE HH:mm').format(m.kickoffAt.toLocal()).toUpperCase();
+            : MatchTimeFormat.localWeekdayKickoff(m.kickoffAt).toUpperCase();
     return InkWell(
       onTap: () => context.push('/match/${m.id}'),
       child: Container(

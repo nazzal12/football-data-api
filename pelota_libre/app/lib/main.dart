@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,6 +14,13 @@ import 'data/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+    // Touch Analytics so the SDK registers with the default app.
+    FirebaseAnalytics.instance;
+  } catch (e, st) {
+    debugPrint('Firebase init skipped: $e\n$st');
+  }
   await Hive.initFlutter();
   final prefs = await SharedPreferences.getInstance();
   final cache = await ResponseCache.open();

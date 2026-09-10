@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/config.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/feed_providers.dart';
 import '../../data/models.dart';
+import '../../data/providers.dart';
 import '../../data/repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/chrome.dart';
@@ -317,7 +319,18 @@ class _LiveMatchesTab extends ConsumerWidget {
               ),
             )
             .toList()
-          ..sort((a, b) => a.competition.name.compareTo(b.competition.name));
+          ..sort(
+            (a, b) => AppConfig.compareLeaguesByPopularity(
+              aExternalId: ref
+                  .read(footballRepositoryProvider)
+                  .cachedExternalId(a.competition.id),
+              aName: a.competition.name,
+              bExternalId: ref
+                  .read(footballRepositoryProvider)
+                  .cachedExternalId(b.competition.id),
+              bName: b.competition.name,
+            ),
+          );
 
         return RefreshIndicator(
           color: PlColors.electricGreen,

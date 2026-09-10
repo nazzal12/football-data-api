@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../core/theme/app_colors.dart';
+import '../core/match_time.dart';
 import '../data/repository.dart';
 import '../l10n/app_localizations.dart';
 import 'chrome.dart';
@@ -38,8 +38,9 @@ class MatchListCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 52),
         decoration: BoxDecoration(
           color: bg,
           border: Border.all(color: border),
@@ -50,41 +51,41 @@ class MatchListCard extends StatelessWidget {
               child: Text(
                 card.home.name.toUpperCase(),
                 textAlign: TextAlign.right,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.archivoNarrow(
                   fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  height: 1.1,
+                  fontSize: 15,
+                  height: 1.15,
                   color: nameColor,
                 ),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             EntityMark(
               label: card.home.name,
               logoUrl: card.home.logoUrl,
-              size: 28,
+              size: 30,
               whiteBackdrop: true,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             SizedBox(
-              width: 58,
+              width: 72,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (live)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
+                        horizontal: 5,
+                        vertical: 2,
                       ),
                       color: PlColors.electricGreen,
                       child: Text(
                         "${m.minute ?? ''}'",
                         style: GoogleFonts.archivoNarrow(
                           fontWeight: FontWeight.w700,
-                          fontSize: 10,
+                          fontSize: 11,
                           color: PlColors.lightOnPrimaryContainer,
                         ),
                       ),
@@ -94,49 +95,50 @@ class MatchListCard extends StatelessWidget {
                       'FT',
                       style: GoogleFonts.archivoNarrow(
                         fontWeight: FontWeight.w700,
-                        fontSize: 10,
+                        fontSize: 11,
                         color: muted,
                       ),
                     )
                   else
                     Text(
-                      DateFormat.Hm().format(m.kickoffAt.toLocal()),
+                      MatchTimeFormat.localKickoff(m.kickoffAt),
+                      textAlign: TextAlign.center,
                       style: GoogleFonts.archivoNarrow(
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                         color: nameColor,
                       ),
                     ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     m.isUpcoming
                         ? 'VS'
                         : '${m.score?.home ?? '-'} - ${m.score?.away ?? '-'}',
                     style: GoogleFonts.anton(
-                      fontSize: m.isUpcoming ? 13 : 17,
+                      fontSize: m.isUpcoming ? 14 : 18,
                       color: m.isUpcoming ? muted : nameColor,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             EntityMark(
               label: card.away.name,
               logoUrl: card.away.logoUrl,
-              size: 28,
+              size: 30,
               whiteBackdrop: true,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 card.away.name.toUpperCase(),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.archivoNarrow(
                   fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  height: 1.1,
+                  fontSize: 15,
+                  height: 1.15,
                   color: nameColor,
                 ),
               ),
@@ -146,7 +148,7 @@ class MatchListCard extends StatelessWidget {
               Text(
                 l10n.live,
                 style: GoogleFonts.jetBrainsMono(
-                  fontSize: 8,
+                  fontSize: 9,
                   letterSpacing: 0.5,
                   color: PlColors.liveRed,
                   fontWeight: FontWeight.w600,

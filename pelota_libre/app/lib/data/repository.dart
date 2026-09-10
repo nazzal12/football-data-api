@@ -54,6 +54,9 @@ class FootballRepository {
     return ext;
   }
 
+  /// Sync lookup for list sorting (populated from projections / featured warm).
+  String? cachedExternalId(String internalId) => _externalByInternal[internalId];
+
   /// Warm featured leagues (by-external). Fast after first cache fill.
   Future<void> ensureFeaturedCompetitions() {
     if (_featuredReady && _featuredCompetitionIds.isNotEmpty) {
@@ -197,6 +200,11 @@ class FootballRepository {
       discoveredTeams[home.id] = home;
       discoveredTeams[away.id] = away;
       discoveredCompetitions[comp.id] = comp;
+      final ext = item.competitionExternalId;
+      if (ext != null && ext.isNotEmpty) {
+        _externalByInternal[comp.id] = ext;
+        _internalByExternalComp[ext] = comp.id;
+      }
       out.add(
         MatchCardVm(match: m, home: home, away: away, competition: comp),
       );
@@ -391,7 +399,16 @@ class FootballRepository {
         LeagueGroupVm(competition: list.first.competition, matches: list),
       );
     }
-    groups.sort((a, b) => a.competition.name.compareTo(b.competition.name));
+    groups.sort((a, b) {
+      final aExt = _externalByInternal[a.competition.id];
+      final bExt = _externalByInternal[b.competition.id];
+      return AppConfig.compareLeaguesByPopularity(
+        aExternalId: aExt,
+        aName: a.competition.name,
+        bExternalId: bExt,
+        bName: b.competition.name,
+      );
+    });
     return groups;
   }
 
@@ -515,13 +532,32 @@ class FootballRepository {
 
   Future<List<Competition>> competitionsCatalog() async {
     await ensureFeaturedCompetitions();
-    final list = discoveredCompetitions.values
-        .where((c) => _featuredCompetitionIds.contains(c.id))
-        .toList()
+    // Seed discovery from today's board so Leagues tab matches Home leagues
+    // even if the user opens Leagues first.
+    try {
+      final now = DateTime.now();
+      final ymd =
+          '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final proj = await _api.matchesByDate(ymd);
+      if (proj.items.isNotEmpty) {
+        cardsFromProjectionItems(proj.items);
+      }
+    } catch (e) {
+      _log('competitionsCatalog day seed fail: $e');
+    }
+    // Featured first (stable AppConfig order), then every other discovered league.
+    final byId = Map<String, Competition>.from(discoveredCompetitions);
+    final featured = <Competition>[];
+    final seen = <String>{};
+    for (final ext in AppConfig.featuredLeagueExternalIds) {
+      final id = _internalByExternalComp[ext];
+      final c = id != null ? byId[id] : null;
+      if (c == null || !seen.add(c.id)) continue;
+      featured.add(c);
+    }
+    final rest = byId.values.where((c) => !seen.contains(c.id)).toList()
       ..sort((a, b) => a.name.compareTo(b.name));
-    if (list.isNotEmpty) return list;
-    return discoveredCompetitions.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    return [...featured, ...rest];
   }
 
   Future<List<Team>> teamsCatalog() async {

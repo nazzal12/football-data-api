@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
+import '../../core/match_time.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/feed_providers.dart';
 import '../../data/models.dart';
@@ -202,12 +202,12 @@ class _Scoreboard extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
     final m = card.match;
-    final date = DateFormat('d MMM yyyy').format(m.kickoffAt.toLocal()).toUpperCase();
+    final date = MatchTimeFormat.localDayLabel(m.kickoffAt).toUpperCase();
     final status = m.isLive
         ? '${l10n.live} ${m.minute ?? ''}\''
         : m.isFinished
             ? l10n.fullTime.toUpperCase()
-            : DateFormat.Hm().format(m.kickoffAt.toLocal());
+            : MatchTimeFormat.localKickoff(m.kickoffAt);
 
     return Container(
       margin: const EdgeInsets.all(16),

@@ -5,8 +5,13 @@ dist
 .env
 .env.*
 !.env.example
+!deploy/hetzner/.env.example
 coverage
 *.log
 .DS_Store
 *.tsbuildinfo
 .turbo
+deploy/hetzner/.env
+/tmp-kv-export/
+/backups/kv-export/
+/backups/r2-export/

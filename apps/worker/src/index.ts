@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { decideAccess, isAccessGuardEnabled } from "./access.js";
 import type { WorkerBindings } from "./env.js";
 import { problem } from "./http.js";
-import { createServices } from "./wiring.js";
+import { createServices, type RuntimeEnv } from "./wiring.js";
 import {
   runWarmup,
   warmupModeForCron,
@@ -18,7 +18,9 @@ import {
   rewriteLogoToMediaProxy,
 } from "./media.js";
 
-const app = new Hono<{ Bindings: WorkerBindings }>();
+type AppBindings = WorkerBindings | RuntimeEnv;
+
+const app = new Hono<{ Bindings: AppBindings }>();
 
 /** Soft gate: Dart app, site Worker, site browser Origin/Referer — no API key. */
 app.use("*", async (c, next) => {
@@ -71,17 +73,18 @@ app.get("/health", async (c) => {
 });
 
 function scheduleProjectionRefresh(
-  c: { executionCtx: { waitUntil: (promise: Promise<unknown>) => void } },
+  c: { executionCtx?: { waitUntil?: (promise: Promise<unknown>) => void } },
   result: Result<GetMatchListResult, AppError>,
 ): void {
   if (!result.ok) return;
   const bg = result.value.backgroundRefresh;
   if (!bg) return;
-  c.executionCtx.waitUntil(
-    bg().catch((err: unknown) => {
-      console.error("projection background refresh failed", err);
-    }),
-  );
+  const run = bg().catch((err: unknown) => {
+    console.error("projection background refresh failed", err);
+  });
+  if (c.executionCtx?.waitUntil) {
+    c.executionCtx.waitUntil(run);
+  }
 }
 
 function requestOrigin(request: Request): string {
@@ -144,6 +147,9 @@ app.get("/v1/media/:kind/:file", async (c) => {
     );
   }
   const externalId = idMatch[1];
+  if (!externalId) {
+    return c.json(problem(validationError("missing media id"), c.req.path).body, 400);
+  }
   const { objects } = createServices(c.env);
   try {
     const result = await getOrCacheMedia({
@@ -154,7 +160,10 @@ app.get("/v1/media/:kind/:file", async (c) => {
     c.header("Content-Type", result.contentType);
     c.header("Cache-Control", "public, max-age=604800, immutable");
     c.header("X-Cache", result.cacheHit ? "HIT" : "MISS");
-    return c.body(result.body);
+    return new Response(result.body as unknown as BodyInit, {
+      status: 200,
+      headers: c.res.headers,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return c.json(problem(notFoundError(message), c.req.path).body, 404);
@@ -1009,4 +1018,6 @@ export default {
     );
   },
 };
-export type { WorkerBindings };
+export { app };
+export type { WorkerBindings, AppBindings };
+export type { RuntimeEnv } from "./wiring.js";

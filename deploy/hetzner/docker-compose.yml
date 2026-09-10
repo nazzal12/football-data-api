@@ -1,0 +1,52 @@
+# Sidecar stack — project name football-api. Does not touch orefinder.
+# Binds API to 127.0.0.1:8787 only; Redis is internal.
+name: football-api
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: football-api-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1000"]
+    volumes:
+      - football_api_redis:/data
+    networks:
+      - football_api_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/hetzner/Dockerfile
+    container_name: football-api
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: redis://redis:6379
+      OBJECTS_DIR: /var/lib/football-api/objects
+      HOST: 0.0.0.0
+      PORT: "8787"
+      ENVIRONMENT: production
+      DISABLE_CRON: ${DISABLE_CRON:-}
+    volumes:
+      - football_api_objects:/var/lib/football-api/objects
+    ports:
+      - "127.0.0.1:8787:8787"
+    networks:
+      - football_api_net
+
+volumes:
+  football_api_redis:
+  football_api_objects:
+
+networks:
+  football_api_net:
+    name: football_api_net
