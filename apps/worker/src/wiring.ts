@@ -1,5 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { ConsoleLogger, SystemClock, loadConfig } from "@football-api/core";
-import { KvIdBridge } from "@football-api/provider";
 import { ApiFootballProvider } from "@football-api/provider-api-football";
 import {
   CacheApiHttpCache,
@@ -12,8 +12,6 @@ import {
 import type { WorkerBindings } from "./env.js";
 import { PersistentIdResolver } from "./ids.js";
 import { Orchestrator } from "./orchestrator.js";
-
-/** Platform-agnostic service deps (Workers KV/R2 or Node Redis/FS). */
 export type RuntimeEnv = {
   meta: MetaStore;
   objects: ObjectStore;
@@ -59,7 +57,6 @@ export function createServices(env: WorkerBindings | RuntimeEnv) {
   const objects = runtime.objects;
   const cache = runtime.cache;
   const resolver = new PersistentIdResolver(meta);
-  const bridge = new KvIdBridge(meta, "api-football");
 
   const provider = new ApiFootballProvider({
     apiKey: runtime.API_SPORTS_KEY ?? "",
@@ -71,13 +68,14 @@ export function createServices(env: WorkerBindings | RuntimeEnv) {
       provider: string;
       externalType: string;
       externalId: string;
-    }) => bridge.toInternal(ref),
+    }) => resolver.toInternal(ref.externalType, ref.externalId),
     bind: (
       ref: { provider: string; externalType: string; externalId: string },
       internalId: string,
-    ) => bridge.bind(ref, internalId),
+    ) => resolver.bind(ref.externalType, ref.externalId, internalId),
     toExternal: (internalId: string) => resolver.toExternal(internalId),
     ensure: (externalType: string, externalId: string) => resolver.ensure(externalType, externalId),
+    flush: () => resolver.flush(),
   };
 
   const orchestrator = new Orchestrator({
@@ -91,6 +89,29 @@ export function createServices(env: WorkerBindings | RuntimeEnv) {
   });
 
   return { orchestrator, resolver, meta, objects, logger, config, runtime };
+}
+
+const servicesAls = new AsyncLocalStorage<ReturnType<typeof createServices>>();
+
+/** Same service graph for the current request (one ID-map flush at the end). */
+export function getRequestServices(env: WorkerBindings | RuntimeEnv) {
+  return servicesAls.getStore() ?? createServices(env);
+}
+
+export async function runWithServices<T>(
+  env: WorkerBindings | RuntimeEnv,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const existing = servicesAls.getStore();
+  if (existing) return fn();
+  const services = createServices(env);
+  return servicesAls.run(services, async () => {
+    try {
+      return await fn();
+    } finally {
+      await services.resolver.flush();
+    }
+  });
 }
 
 export function createOrchestrator(env: WorkerBindings | RuntimeEnv): Orchestrator {

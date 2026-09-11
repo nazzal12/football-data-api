@@ -64,9 +64,11 @@ export async function runWarmup(
   opts?: { mode?: WarmupMode },
 ): Promise<{ ok: true; steps: string[]; mode: WarmupMode }> {
   const mode: WarmupMode = opts?.mode ?? "all";
-  const { orchestrator, logger, meta } = createServices(env);
+  const { orchestrator, logger, meta, resolver } = createServices(env);
   const steps: string[] = [];
   const nowMs = Date.now();
+
+  try {
 
   const warmProjection = async (key: string) => {
     const httpPath = key.startsWith("date:")
@@ -152,6 +154,9 @@ export async function runWarmup(
 
   logger.info("warmup.done", { mode, steps: steps.length });
   return { ok: true, steps, mode };
+  } finally {
+    await resolver.flush();
+  }
 }
 
 /** Map Cloudflare cron expression → warmup mode. */

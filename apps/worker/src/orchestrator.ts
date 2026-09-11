@@ -108,6 +108,7 @@ export type OrchestratorDeps = {
   ids: IdBridge & {
     toExternal?(internalId: string): Promise<string | null>;
     ensure?(externalType: string, externalId: string): Promise<string>;
+    flush?(): Promise<void>;
   };
   clock: Clock;
   logger: Logger;
@@ -329,6 +330,17 @@ export class Orchestrator {
   }
 
   async getMatch(request: Request, internalId: string): Promise<Result<GetMatchResult, AppError>> {
+    try {
+      return await this.getMatchUnflushed(request, internalId);
+    } finally {
+      await this.deps.ids.flush?.();
+    }
+  }
+
+  private async getMatchUnflushed(
+    request: Request,
+    internalId: string,
+  ): Promise<Result<GetMatchResult, AppError>> {
     // Sub-resource callers (events/statistics/lineups) pass their own Request.
     // Always key Cache API by the match URL so bodies never collide.
     const cacheRequest = this.resourceCacheRequest(request, `/v1/matches/${internalId}`);
@@ -750,14 +762,18 @@ export class Orchestrator {
       });
     }
 
-    return this.rebuildMatchListProjection({
-      request,
-      key,
-      parsed,
-      policy,
-      meta,
-      current,
-    });
+    try {
+      return await this.rebuildMatchListProjection({
+        request,
+        key,
+        parsed,
+        policy,
+        meta,
+        current,
+      });
+    } finally {
+      await this.deps.ids.flush?.();
+    }
   }
 
   private async rebuildMatchListProjection(args: {
@@ -768,6 +784,7 @@ export class Orchestrator {
     meta: ObjectMetadata | null;
     current: MatchListProjection | null;
   }): Promise<Result<GetMatchListResult, AppError>> {
+    try {
     const { request, key, parsed, policy, meta, current } = args;
     const pKey = projectionKey("match_list", key);
     const nowMs = this.deps.clock.nowMs();
@@ -957,6 +974,9 @@ export class Orchestrator {
       refreshed: true,
       cacheTtlSeconds: policy.cacheTtlSeconds,
     });
+    } finally {
+      await this.deps.ids.flush?.();
+    }
   }
 
   async getMatchEvents(
@@ -1977,6 +1997,7 @@ export class Orchestrator {
         policy,
       }),
     );
+    await this.deps.ids.flush?.();
   }
 
   private async ensureExternal(
