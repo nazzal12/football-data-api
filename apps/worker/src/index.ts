@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { decideAccess, isAccessGuardEnabled } from "./access.js";
 import type { WorkerBindings } from "./env.js";
 import { problem } from "./http.js";
-import { getRequestServices, runWithServices, type RuntimeEnv } from "./wiring.js";
+import { createServices, type RuntimeEnv } from "./wiring.js";
 import {
   runWarmup,
   warmupModeForCron,
@@ -19,8 +19,19 @@ import {
 } from "./media.js";
 
 type AppBindings = WorkerBindings | RuntimeEnv;
+type AppServices = ReturnType<typeof createServices>;
 
-const app = new Hono<{ Bindings: AppBindings }>();
+const app = new Hono<{ Bindings: AppBindings; Variables: { services: AppServices } }>();
+
+app.use("*", async (c, next) => {
+  const services = createServices(c.env);
+  c.set("services", services);
+  try {
+    await next();
+  } finally {
+    await services.resolver.flush();
+  }
+});
 
 /** Soft gate: Dart app, site Worker, site browser Origin/Referer — no API key. */
 app.use("*", async (c, next) => {
@@ -62,7 +73,7 @@ app.onError((error, c) => {
 });
 
 app.get("/health", async (c) => {
-  const { meta } = getRequestServices(c.env);
+  const { meta } = c.get("services");
   const warmup = await meta.getJson<WarmupLast>(WARMUP_LAST_KEY);
   return c.json({
     ok: true,
@@ -150,7 +161,7 @@ app.get("/v1/media/:kind/:file", async (c) => {
   if (!externalId) {
     return c.json(problem(validationError("missing media id"), c.req.path).body, 400);
   }
-  const { objects } = getRequestServices(c.env);
+  const { objects } = c.get("services");
   try {
     const result = await getOrCacheMedia({
       objects,
@@ -175,7 +186,7 @@ app.get("/v1/matches/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -192,7 +203,7 @@ app.get("/v1/matches/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatch(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -209,7 +220,7 @@ app.get("/v1/matches/:id/events", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchEvents(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -225,7 +236,7 @@ app.get("/v1/matches/:id/lineups", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchLineups(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -241,7 +252,7 @@ app.get("/v1/matches/:id/statistics", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchStatistics(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -258,7 +269,7 @@ app.get("/v1/matches/:id/predictions", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchPrediction(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -275,7 +286,7 @@ app.get("/v1/matches/:id/odds", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchOdds(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -292,7 +303,7 @@ app.get("/v1/matches/:id/injuries", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchInjuries(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -309,7 +320,7 @@ app.get("/v1/matches/:id/player-statistics", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid match id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchPlayerStatistics(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -333,7 +344,7 @@ app.get("/v1/h2h/by-external/:teamA/:teamB", async (c) => {
   const a = Number(teamA);
   const b = Number(teamB);
   const externalId = a < b ? `${a}-${b}` : `${b}-${a}`;
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getHeadToHead(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -363,7 +374,7 @@ app.get("/v1/leaders/by-external/:leagueId/:seasonYear/:kind", async (c) => {
     );
   }
   const externalId = `${leagueId}:${seasonYear}:${kind}`;
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSeasonLeaders(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -380,7 +391,7 @@ app.get("/v1/teams/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTeamByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -396,7 +407,7 @@ app.get("/v1/teams/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid team id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTeam(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -419,7 +430,7 @@ app.get("/v1/teams/by-external/:teamId/squads/:leagueId/:seasonYear", async (c) 
     );
   }
   const externalId = `${teamId}:${leagueId}:${seasonYear}`;
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSquadByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -436,7 +447,7 @@ app.get("/v1/teams/by-external/:teamId/coach", async (c) => {
   if (!/^\d+$/.test(teamId)) {
     return c.json(problem(validationError("teamId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTeamCoachByExternal(c.req.raw, teamId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -452,7 +463,7 @@ app.get("/v1/teams/by-external/:teamId/transfers", async (c) => {
   if (!/^\d+$/.test(teamId)) {
     return c.json(problem(validationError("teamId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTransfersByExternal(c.req.raw, `team:${teamId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -474,7 +485,7 @@ app.get("/v1/teams/by-external/:teamId/statistics/:leagueId/:seasonYear", async 
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTeamSeasonStatisticsByExternal(
     c.req.raw,
     `${teamId}:${leagueId}:${seasonYear}`,
@@ -498,7 +509,7 @@ app.get("/v1/teams/by-external/:teamId/injuries/:seasonYear", async (c) => {
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTeamInjuriesByExternal(
     c.req.raw,
     `team:${teamId}:${seasonYear}`,
@@ -516,7 +527,7 @@ app.get("/v1/players/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getPlayerByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -533,7 +544,7 @@ app.get("/v1/players/by-external/:playerId/transfers", async (c) => {
   if (!/^\d+$/.test(playerId)) {
     return c.json(problem(validationError("playerId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTransfersByExternal(c.req.raw, `player:${playerId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -550,7 +561,7 @@ app.get("/v1/players/by-external/:playerId/trophies", async (c) => {
   if (!/^\d+$/.test(playerId)) {
     return c.json(problem(validationError("playerId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTrophiesByExternal(c.req.raw, `player:${playerId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -565,7 +576,7 @@ app.get("/v1/players/by-external/:playerId/sidelined", async (c) => {
   if (!/^\d+$/.test(playerId)) {
     return c.json(problem(validationError("playerId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSidelinedByExternal(c.req.raw, `player:${playerId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -580,7 +591,7 @@ app.get("/v1/players/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid player id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getPlayer(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -595,7 +606,7 @@ app.get("/v1/coaches/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getCoachByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -612,7 +623,7 @@ app.get("/v1/coaches/by-external/:coachId/trophies", async (c) => {
   if (!/^\d+$/.test(coachId)) {
     return c.json(problem(validationError("coachId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getTrophiesByExternal(c.req.raw, `coach:${coachId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -627,7 +638,7 @@ app.get("/v1/coaches/by-external/:coachId/sidelined", async (c) => {
   if (!/^\d+$/.test(coachId)) {
     return c.json(problem(validationError("coachId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSidelinedByExternal(c.req.raw, `coach:${coachId}`);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -642,7 +653,7 @@ app.get("/v1/coaches/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid coach id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getCoach(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -657,7 +668,7 @@ app.get("/v1/competitions/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getCompetitionByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -673,7 +684,7 @@ app.get("/v1/competitions/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid competition id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getCompetition(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -694,7 +705,7 @@ app.get("/v1/seasons/by-external/:leagueId/:seasonYear", async (c) => {
     );
   }
   const externalId = `${leagueId}:${seasonYear}`;
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSeasonByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -710,7 +721,7 @@ app.get("/v1/seasons/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid season id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSeason(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -731,7 +742,7 @@ app.get("/v1/standings/by-external/:leagueId/:seasonYear", async (c) => {
     );
   }
   const externalId = `${leagueId}:${seasonYear}`;
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getStandingsByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -747,7 +758,7 @@ app.get("/v1/standings/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid standings id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getStandings(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -765,7 +776,7 @@ app.get("/v1/projections/matches/by-date/:date", async (c) => {
   }
   const key = `date:${date}`;
   const forceRefresh = c.req.query("force") === "1";
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchListProjection(c.req.raw, key, {
     forceRefresh,
   });
@@ -790,7 +801,7 @@ app.get("/v1/projections/matches/by-league/:leagueId/:seasonYear", async (c) => 
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchListProjection(
     c.req.raw,
     `league:${leagueId}:${seasonYear}`,
@@ -816,7 +827,7 @@ app.get("/v1/projections/matches/by-team/:teamId/:seasonYear", async (c) => {
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchListProjection(
     c.req.raw,
     `team:${teamId}:${seasonYear}`,
@@ -835,7 +846,7 @@ app.get("/v1/projections/matches/by-team/:teamId/:seasonYear", async (c) => {
 
 app.get("/v1/projections/matches/live", async (c) => {
   const forceRefresh = c.req.query("force") === "1";
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getMatchListProjection(c.req.raw, "live", {
     forceRefresh,
   });
@@ -856,7 +867,7 @@ app.get("/v1/countries/by-name/:name", async (c) => {
   if (!name) {
     return c.json(problem(validationError("name is required"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getCountryByExternal(c.req.raw, name);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -871,7 +882,7 @@ app.get("/v1/venues/by-external/:externalId", async (c) => {
   if (!/^\d+$/.test(externalId)) {
     return c.json(problem(validationError("externalId must be numeric"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getVenueByExternal(c.req.raw, externalId);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -886,7 +897,7 @@ app.get("/v1/venues/:id", async (c) => {
   if (!isId(id)) {
     return c.json(problem(validationError("Invalid venue id"), c.req.path).body, 400);
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getVenue(c.req.raw, id);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -905,7 +916,7 @@ app.get("/v1/search", async (c) => {
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.search(c.req.raw, q);
   if (!result.ok) {
     const p = problem(result.error, c.req.path);
@@ -926,7 +937,7 @@ app.get("/v1/seasons/by-external/:leagueId/:seasonYear/rounds", async (c) => {
       400,
     );
   }
-  const { orchestrator } = getRequestServices(c.env);
+  const { orchestrator } = c.get("services");
   const result = await orchestrator.getSeasonRoundsByExternal(
     c.req.raw,
     `${leagueId}:${seasonYear}`,
@@ -944,7 +955,7 @@ app.get("/v1/ids/:internalId", async (c) => {
   if (!isId(internalId)) {
     return c.json(problem(validationError("Invalid id"), c.req.path).body, 400);
   }
-  const { resolver } = getRequestServices(c.env);
+  const { resolver } = c.get("services");
   const externalId = await resolver.toExternal(internalId);
   if (!externalId) {
     return c.json(problem(notFoundError("No external id for resource", { id: internalId }), c.req.path).body, 404);
@@ -993,7 +1004,7 @@ app.put("/v1/id-maps", async (c) => {
       400,
     );
   }
-  const { resolver } = getRequestServices(c.env);
+  const { resolver } = c.get("services");
   await resolver.bind(body.externalType, String(body.externalId), body.internalId);
   await resolver.flush();
   return c.json({
@@ -1005,9 +1016,7 @@ app.put("/v1/id-maps", async (c) => {
 });
 
 export default {
-  fetch(request: Request, env: WorkerBindings, ctx: ExecutionContext) {
-    return runWithServices(env, () => app.fetch(request, env, ctx));
-  },
+  fetch: app.fetch,
   async scheduled(
     controller: ScheduledController,
     env: WorkerBindings,

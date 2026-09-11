@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import { ConsoleLogger, SystemClock, loadConfig } from "@football-api/core";
 import { ApiFootballProvider } from "@football-api/provider-api-football";
 import {
@@ -89,29 +88,6 @@ export function createServices(env: WorkerBindings | RuntimeEnv) {
   });
 
   return { orchestrator, resolver, meta, objects, logger, config, runtime };
-}
-
-const servicesAls = new AsyncLocalStorage<ReturnType<typeof createServices>>();
-
-/** Same service graph for the current request (one ID-map flush at the end). */
-export function getRequestServices(env: WorkerBindings | RuntimeEnv) {
-  return servicesAls.getStore() ?? createServices(env);
-}
-
-export async function runWithServices<T>(
-  env: WorkerBindings | RuntimeEnv,
-  fn: () => Promise<T>,
-): Promise<T> {
-  const existing = servicesAls.getStore();
-  if (existing) return fn();
-  const services = createServices(env);
-  return servicesAls.run(services, async () => {
-    try {
-      return await fn();
-    } finally {
-      await services.resolver.flush();
-    }
-  });
 }
 
 export function createOrchestrator(env: WorkerBindings | RuntimeEnv): Orchestrator {
