@@ -2,7 +2,7 @@ name = "football-api"
 main = "src/index.ts"
 compatibility_date = "2025-03-01"
 compatibility_flags = ["nodejs_compat"]
-account_id = "172e60bf5969fa2ef5e34f840c3b1045"
+account_id = "02ef1991686c9280acc43e0b39e6dda2"
 
 [observability]
 enabled = true
@@ -17,13 +17,13 @@ ENVIRONMENT = "production"
 crons = ["*/5 * * * *", "0 */5 * * *"]
 
 # Workers KV — metadata, lifecycle, id maps, leases
+# Binding must stay META (see apps/worker/src/env.ts). Dashboard snippets often use "KV".
 [[kv_namespaces]]
 binding = "META"
-id = "47d3dcca27284017a3d6a1be1d2cb119"
-preview_id = "47d3dcca27284017a3d6a1be1d2cb119"
+id = "0ff9c7bced8c4a46911476355803f790"
+preview_id = "0ff9c7bced8c4a46911476355803f790"
 
-# R2 — canonical objects (bucket: football-api-objects)
-# S3 API (for non-Worker clients): https://172e60bf5969fa2ef5e34f840c3b1045.r2.cloudflarestorage.com/football-api-objects
+# R2 — canonical objects
 [[r2_buckets]]
 binding = "OBJECTS"
 bucket_name = "football-api-objects"
