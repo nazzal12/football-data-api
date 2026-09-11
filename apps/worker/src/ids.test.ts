@@ -51,4 +51,13 @@ describe("PersistentIdResolver packs", () => {
     expect(await loaded.toExternal("074db8fe-cb0b-4cc4-b1fd-6ae0f0ed3c68")).toBe("1208021");
     expect(idMapKey("api-football", "pack", "match")).toBe("idmap:api-football:pack:match");
   });
+
+  it("coalesces parallel ensure() into one KV get per pack", async () => {
+    const meta = new CountingMeta();
+    const resolver = new PersistentIdResolver(meta);
+    await Promise.all(Array.from({ length: 40 }, (_, i) => resolver.ensure("team", i + 1)));
+    await resolver.flush();
+    expect(meta.gets).toBeLessThanOrEqual(4);
+    expect(meta.puts).toBeLessThanOrEqual(4);
+  });
 });

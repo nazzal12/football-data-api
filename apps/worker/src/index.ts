@@ -1,4 +1,5 @@
-import { isId, notFoundError, validationError } from "@football-api/core";
+import { AppError, isId, notFoundError, validationError } from "@football-api/core";
+import type { Result } from "@football-api/core";
 import { Hono } from "hono";
 import { decideAccess, isAccessGuardEnabled } from "./access.js";
 import type { WorkerBindings } from "./env.js";
@@ -11,7 +12,6 @@ import {
   type WarmupLast,
 } from "./warmup.js";
 import type { GetMatchListResult } from "./orchestrator.js";
-import type { AppError, Result } from "@football-api/core";
 import {
   getOrCacheMedia,
   isMediaKind,
@@ -58,6 +58,10 @@ app.use("*", async (c, next) => {
 });
 
 app.onError((error, c) => {
+  if (error instanceof AppError) {
+    const p = problem(error, c.req.path);
+    return c.json(p.body, p.status as 400 | 404 | 409 | 500 | 502 | 503);
+  }
   const message = error instanceof Error ? error.message : String(error);
   return c.json(
     {

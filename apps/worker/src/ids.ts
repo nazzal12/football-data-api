@@ -18,16 +18,29 @@ export class PersistentIdResolver {
   private readonly packs = new Map<string, Record<string, string>>();
   private readonly loaded = new Set<string>();
   private readonly dirty = new Set<string>();
+  private readonly inflight = new Map<string, Promise<Record<string, string>>>();
 
   constructor(private readonly meta: MetaStore) {}
 
   private async loadPack(kind: string): Promise<Record<string, string>> {
     const cached = this.packs.get(kind);
     if (cached && this.loaded.has(kind)) return cached;
-    const data = (await this.meta.getJson<Record<string, string>>(packKey(kind))) ?? {};
-    this.packs.set(kind, data);
-    this.loaded.add(kind);
-    return data;
+    const pending = this.inflight.get(kind);
+    if (pending) return pending;
+    const task = (async () => {
+      const data = (await this.meta.getJson<Record<string, string>>(packKey(kind))) ?? {};
+      this.packs.set(kind, data);
+      this.loaded.add(kind);
+      this.inflight.delete(kind);
+      return data;
+    })();
+    this.inflight.set(kind, task);
+    try {
+      return await task;
+    } catch (error) {
+      this.inflight.delete(kind);
+      throw error;
+    }
   }
 
   async ensure(externalType: string, externalId: string | number): Promise<string> {
